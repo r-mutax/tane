@@ -3,7 +3,7 @@
 # - All C sources live under src/
 # - Header files are under src/ (included via -Isrc)
 # - Object files are placed under build/obj/
-# - Final executable is bin/tane
+# - Final executable is build/tane
 
 # Tools
 CC      ?= cc
@@ -26,7 +26,7 @@ SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 
-.PHONY: all clean run dirs
+.PHONY: all clean run dirs test
 
 all: $(TARGET)
 
@@ -47,6 +47,15 @@ $(OBJ_DIR):
 # Run the program
 run: $(TARGET)
 	$(TARGET)
+
+# Test target
+# Executes test.sh which is expected to run: build/tane "code"
+# Make sure test.sh is executable
+TEST_SCRIPT := ./test.sh
+
+test: $(TARGET) $(TEST_SCRIPT)
+	@chmod +x $(TEST_SCRIPT)
+	$(TEST_SCRIPT)
 
 # Clean build outputs
 clean:
