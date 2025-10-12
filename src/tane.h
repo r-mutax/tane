@@ -15,6 +15,8 @@ typedef enum TokenKind {
     TK_SUB,         // -
     TK_MUL,         // *
     TK_DIV,         // /
+    TK_L_PAREN,     // (
+    TK_R_PAREN,     // )
     TK_EOF,
 } TokenKind;
 
@@ -43,3 +45,4 @@ struct ASTNode {
 };
 
 ASTNode* parse(Token* token);
+void print_ast(ASTNode* node);

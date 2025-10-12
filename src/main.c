@@ -7,4 +7,8 @@ int main(int argc, char** argv) {
 
     Token* token = tokenize(argv[1]);
     print_tokens(token);
+
+    ASTNode* node = parse(token);
+    print_ast(node);
+    return 0;
 }

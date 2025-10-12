@@ -28,6 +28,12 @@ Token* tokenize(char* p) {
             case '/':
                 cur = new_token(TK_DIV, cur, p++);
                 break;
+            case '(':
+                cur = new_token(TK_L_PAREN, cur, p++);
+                break;
+            case ')':
+                cur = new_token(TK_R_PAREN, cur, p++);
+                break;
             default:
                 if(isdigit(c)){
                     char* q = p;
@@ -57,13 +63,48 @@ Token* new_token(TokenKind kind, Token* cur, char* pos){
 }
 
 // For debugging
+void printTokenKind(TokenKind kind);
 
 /// Print the tokens in the linked list
 void print_tokens(Token* head){
     Token* cur = head;
 
     while(cur){
-        printf("kind: %d, val: %d\n", cur->kind, cur->val);
+        printTokenKind(cur->kind); 
+        printf("\n");
         cur = cur->next;
+    }
+}
+
+/// Print a single TokenKind
+void printTokenKind(TokenKind kind){
+    switch(kind){
+        case TK_NUM:
+            printf("TK_NUM");
+            break;
+        case TK_ADD:
+            printf("TK_ADD");
+            break;
+        case TK_SUB:
+            printf("TK_SUB");
+            break;
+        case TK_MUL:
+            printf("TK_MUL");
+            break;
+        case TK_DIV:
+            printf("TK_DIV");
+            break;
+        case TK_L_PAREN:
+            printf("TK_L_PAREN");
+            break;
+        case TK_R_PAREN:
+            printf("TK_R_PAREN");
+            break;            
+        case TK_EOF:
+            printf("TK_EOF");
+            break;
+        default:
+            printf("Unknown TokenKind: %d", kind);
+            break;
     }
 }
