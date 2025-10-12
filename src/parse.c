@@ -2,7 +2,10 @@
 
 static Token* token;
 
+static ASTNode* stmt();
+static ASTNode* expr();
 static ASTNode* primary();
+
 static bool consume_token(TokenKind kind);
 static void expect_token(TokenKind kind);
 static int expect_num();
@@ -13,6 +16,24 @@ static ASTNode* new_node_num(int val);
 ASTNode* parse(Token* tok) {
     // Implement parsing logic here
     token = tok;
+    return stmt();
+}
+
+static ASTNode* stmt(){
+    if(consume_token(TK_RETURN)){
+        ASTNode* node = new_node(ND_RETURN, expr(), NULL);
+        expect_token(TK_SEMICOLON);
+        return node;
+    } else {
+        // expr statement
+        ASTNode* node = expr();
+        expect_token(TK_SEMICOLON);
+        return node;
+    }
+    return NULL;
+}
+
+static ASTNode* expr(){
     return primary();
 }
 
@@ -67,7 +88,7 @@ static ASTNode* new_node(ASTNodeKind kind, ASTNode* lhs, ASTNode* rhs) {
 
 static ASTNode* new_node_num(int val) {
     ASTNode* node = new_node(ND_NUM, NULL, NULL);
-    node->val = val;
+    node->data.val = val;
     return node;
 }
 
@@ -78,10 +99,11 @@ void print_ast(ASTNode* node) {
     printf("(");
     switch(node->kind) {
         case ND_NUM:
-            printf("%d", node->val);
+            printf("%d", node->data.val);
             break;
         default:
             break;
     }
     printf(")");
+    printf("\n");
 }

@@ -8,6 +8,8 @@
 
 typedef struct Token Token;
 typedef struct ASTNode ASTNode;
+typedef struct IR IR;
+typedef struct Operand Operand;
 
 typedef enum TokenKind {
     TK_NUM,
@@ -17,6 +19,9 @@ typedef enum TokenKind {
     TK_DIV,         // /
     TK_L_PAREN,     // (
     TK_R_PAREN,     // )
+    TK_SEMICOLON,   // ;
+    TK_RETURN,      // "return"
+    TK_IDENT,       // Identifier
     TK_EOF,
 } TokenKind;
 
@@ -24,6 +29,7 @@ struct Token{
     TokenKind kind;
     int val;
     char* pos;
+    int len;
     Token* next;
 };
 Token* tokenize(char* p);
@@ -35,14 +41,62 @@ typedef enum ASTNodeKind {
     ND_SUB,         // -
     ND_MUL,         // *
     ND_DIV,         // /
+    ND_RETURN,      // "return"
 } ASTNodeKind;
 
 struct ASTNode {
     ASTNodeKind kind;
     ASTNode* lhs;
     ASTNode* rhs;
-    int val;        // used if kind == ND_NUM
+
+    union {
+        struct function {
+            int a;
+        } func;
+        int val;
+    } data;
 };
 
 ASTNode* parse(Token* token);
 void print_ast(ASTNode* node);
+
+typedef enum IRCmd {
+    IR_FNAME,
+    IR_FHEAD,
+    IR_FTAIL,
+    IR_ADD,
+    IR_RETURN,
+} IRCmd;
+
+struct IR {
+    IRCmd cmd;
+    Operand* target;
+    Operand* lhs;
+    Operand* rhs;
+    IR* next;
+};
+
+typedef enum OperandKind{
+    OP_REG,
+    OP_IMM,
+} OperandKind;
+
+struct Operand {
+    OperandKind kind;
+
+    int val;
+};
+
+IR* gen_ir(ASTNode* node);
+void print_ir(IR* ir);
+
+
+typedef struct KEYWORD_MAP {
+    char*       keyword;
+    TokenKind   kind;
+} KEYWORD_MAP;
+
+static KEYWORD_MAP keyword_map[] = {
+    {"return",        TK_RETURN},
+};
+

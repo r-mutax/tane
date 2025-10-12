@@ -10,5 +10,9 @@ int main(int argc, char** argv) {
 
     ASTNode* node = parse(token);
     print_ast(node);
+
+    IR* IRcode = gen_ir(node);
+    print_ir(IRcode);
+
     return 0;
 }

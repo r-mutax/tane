@@ -24,8 +24,9 @@ run() {
 }
 
 # Add your cases below
-run "1+2*3"
-run "10/2+5"
-run "4*(3+2)" # if parentheses unsupported, expected to fail
+run "return 1+2*3;"
+run "return 10/2+5;"
+run "return 4*(3+2);" # if parentheses unsupported, expected to fail
+run "return 42;"
 
 echo "Done."
