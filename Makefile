@@ -9,7 +9,7 @@
 CXX     ?= g++
 
 # Flags
-CXXSTD  ?= c++17
+CXXSTD  ?= c++20
 CXXFLAGS?= -O2 -g -Wall -Wextra -Wpedantic -std=$(CXXSTD)
 LDFLAGS ?=
 LDLIBS  ?=

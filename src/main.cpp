@@ -16,5 +16,9 @@ int main(int argc, char** argv) {
     IRGenerator irgen(root, parser);
     IRModule& mod = irgen.run();
 
+    X86Generator x86gen(mod);
+    x86gen.setOutputFile("out.s");
+    x86gen.emit();
+
     return 0;
 }
