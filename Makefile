@@ -1,16 +1,16 @@
 # Makefile for tane
 # Assumptions:
-# - All C sources live under src/
+# - All C++ sources live under src/
 # - Header files are under src/ (included via -Isrc)
 # - Object files are placed under build/obj/
 # - Final executable is build/tane
 
 # Tools
-CC      ?= cc
+CXX     ?= g++
 
 # Flags
-CSTD    ?= c17
-CFLAGS  ?= -O2 -g -Wall -Wextra -Wpedantic -std=$(CSTD)
+CXXSTD  ?= c++17
+CXXFLAGS?= -O2 -g -Wall -Wextra -Wpedantic -std=$(CXXSTD)
 LDFLAGS ?=
 LDLIBS  ?=
 INCLUDES?= -Isrc
@@ -22,8 +22,8 @@ BIN_DIR   := build
 TARGET    := $(BIN_DIR)/tane
 
 # Sources and objects
-SRCS := $(wildcard $(SRC_DIR)/*.c)
-OBJS := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRCS))
+SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 
 .PHONY: all clean run dirs test
@@ -33,12 +33,12 @@ all: $(TARGET)
 # Link final binary
 $(TARGET): $(OBJS)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@echo "Built $@"
 
 # Compile each source to object with dependency files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 # Ensure object directory exists
 $(OBJ_DIR):

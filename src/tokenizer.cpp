@@ -1,13 +1,7 @@
-#include "tane.h"
+#include "tane.hpp"
 
-static Token* new_token(TokenKind kind, Token* cur, char* pos);
-static bool is_ident1(char c);
-static bool is_ident2(char c);
-static TokenKind check_keyword(char* start, unsigned int len);
-
-Token* tokenize(char* p) {
-    Token head = { 0 };
-    Token* cur = &head;
+Tokenizer::TokenStream& Tokenizer::scan(char* p){
+    ts.clear();
 
     bool continue_flg = true;
 
@@ -16,45 +10,45 @@ Token* tokenize(char* p) {
 
         switch(c){
             case 0:
-                cur = new_token(TK_EOF, cur, p++);
+                ts.addToken(TK_EOF, p);
                 continue_flg = false;
                 break;            
             case '+':
-                cur = new_token(TK_ADD, cur, p++);
+                ts.addToken(TK_ADD, p++);
                 break;
             case '-':
-                cur = new_token(TK_SUB, cur, p++);
+                ts.addToken(TK_SUB, p++);
                 break;
             case '*':
-                cur = new_token(TK_MUL, cur, p++);
+                ts.addToken(TK_MUL, p++);
                 break;
             case '/':
-                cur = new_token(TK_DIV, cur, p++);
+                ts.addToken(TK_DIV, p++);
                 break;
             case '(':
-                cur = new_token(TK_L_PAREN, cur, p++);
+                ts.addToken(TK_L_PAREN, p++);
                 break;
             case ')':
-                cur = new_token(TK_R_PAREN, cur, p++);
+                ts.addToken(TK_R_PAREN, p++);
                 break;
             case ';':
-                cur = new_token(TK_SEMICOLON, cur, p++);
+                ts.addToken(TK_SEMICOLON, p++);
                 break;
             default:
                 if(isdigit(c)){
                     char* q = p;
                     int val = strtol(p, &p, 10);
 
-                    cur = new_token(TK_NUM, cur, q);
-                    cur->val = val;
+                    ts.addToken(TK_NUM, q);
+                    ts.getTop().val = val;
                 } else if(isspace(c)){
                     p++;
                 } else if(is_ident1(c)){
                     char* q = p;
                     p++;
                     while(is_ident2(*p)) p++;
-                    cur = new_token(check_keyword(q, p - q), cur, q);
-                    cur->len = p - q;
+                    ts.addToken(checkKeyword(q, p - q), q);
+                    ts.getTop().len = p - q;
                 } else {
                     fprintf(stderr, "Cannot tokenize: %s\n", p);
                     exit(1);
@@ -62,54 +56,85 @@ Token* tokenize(char* p) {
                 break;
         }
     }
-
-    return head.next;
+    return ts;
 }
 
-static Token* new_token(TokenKind kind, Token* cur, char* pos){
-    Token* tok = calloc(1, sizeof(Token));
-    tok->kind = kind;
-    tok->pos = pos;
-    cur->next = tok;
-    return tok;
-}
-
-static bool is_ident1(char c){
-    return isalpha(c) || c == '_';
-}
-
-static bool is_ident2(char c){
-    return is_ident1(c) || isdigit(c);
-}
-
-static TokenKind check_keyword(char* start, unsigned int len){
-    for(unsigned int i = 0; i < sizeof(keyword_map) / sizeof(KEYWORD_MAP); i++){
-        if(len == strlen(keyword_map[i].keyword)
-                && (!memcmp(start, keyword_map[i].keyword, len))){
-            return keyword_map[i].kind;
-        }
+TokenKind Tokenizer::checkKeyword(char* start, unsigned int len){
+    if(keyword_map.find(std::string(start, len)) != keyword_map.end()){
+        return keyword_map[std::string(start, len)];
     }
 
-    // keyword_mapになかった場合、トークンは識別子
+    // Not a keyword, so it must be an identifier
     return TK_IDENT;
 }
 
+bool Tokenizer::is_ident1(char c){
+    return isalpha(c) || c == '_';
+}
+
+bool Tokenizer::is_ident2(char c){
+    return is_ident1(c) || isdigit(c);
+}
+
+Tokenizer::Tokenizer(){
+    // Initialize keyword map
+    keyword_map["return"] = TK_RETURN;
+}
+
+bool Tokenizer::TokenStream::consume(TokenKind kind){
+    if(it == tokens.end()){
+        return false;
+    }
+
+    if(it->kind != kind){
+        return false;
+    }
+
+    it++;
+    return true;
+}
+
+void Tokenizer::TokenStream::expect(TokenKind kind){
+    if(it == tokens.end()){
+        fprintf(stderr, "Unexpected end of input\n");
+        exit(1);
+    }
+
+    if(it->kind != kind){
+        fprintf(stderr, "Unexpected token: %d\n", it->kind);
+        exit(1);
+    }
+
+    it++;
+    return;
+}
+
+int Tokenizer::TokenStream::expectNum(){
+    if(it == tokens.end()){
+        fprintf(stderr, "Unexpected end of input\n");
+        exit(1);
+    }
+
+    if(it->kind != TK_NUM){
+        fprintf(stderr, "Unexpected token: %d\n", it->kind);
+        exit(1);
+    }
+
+    return it++->val;
+}
+
 // For debugging
-void printTokenKind(TokenKind kind);
 
 /// Print the tokens in the linked list
-void print_tokens(Token* head){
-    Token* cur = head;
-
-    while(cur){
-        printTokenKind(cur->kind); 
+void Tokenizer::printTokens(){
+    for(auto it : ts.tokens) {
+        printTokenKind(it.kind); 
         printf("\n");
-        cur = cur->next;
     }
 }
 
 /// Print a single TokenKind
-void printTokenKind(TokenKind kind){
+void Tokenizer::printTokenKind(TokenKind kind){
     switch(kind){
         case TK_NUM:
             printf("TK_NUM");
