@@ -29,7 +29,7 @@ void IRGenerator::genStmt(ASTIdx idx){
             break;
         }
         default:
-            fprintf(stderr, "Unknown AST node kind: %d\n", (unsigned int)node.kind);
+            fprintf(stderr, "Unknown AST node kind: %d\n", (uint32_t)node.kind);
             exit(1);
     }
 }
@@ -46,6 +46,6 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
             break;
     }
     fprintf(stderr, "%d\n", idx);
-    fprintf(stderr, "Unknown AST node kind in expression: %d\n", (unsigned int)node.kind);
+    fprintf(stderr, "Unknown AST node kind in expression: %d\n", (uint32_t)node.kind);
     exit(1);
 }

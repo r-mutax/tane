@@ -18,8 +18,10 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov rax, {}\n", func.getVReg(instr.s1).val);
                 out.print("  ret\n");
                 break;
+            case IRCmd::ADD:
+                break;
             default:
-                fprintf(stderr, "Unknown IR command in X86 generation: %d\n", (unsigned int)instr.cmd);
+                fprintf(stderr, "Unknown IR command in X86 generation: %d\n", (uint32_t)instr.cmd);
                 exit(1);
         }
     }

@@ -37,7 +37,7 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
             default:
                 if(isdigit(c)){
                     char* q = p;
-                    int val = strtol(p, &p, 10);
+                    int32_t val = strtol(p, &p, 10);
 
                     ts.addToken(TK_NUM, q);
                     ts.getTop().val = val;
@@ -59,7 +59,7 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
     return ts;
 }
 
-TokenKind Tokenizer::checkKeyword(char* start, unsigned int len){
+TokenKind Tokenizer::checkKeyword(char* start, uint32_t len){
     if(keyword_map.find(std::string(start, len)) != keyword_map.end()){
         return keyword_map[std::string(start, len)];
     }
@@ -109,7 +109,7 @@ void Tokenizer::TokenStream::expect(TokenKind kind){
     return;
 }
 
-int Tokenizer::TokenStream::expectNum(){
+int32_t Tokenizer::TokenStream::expectNum(){
     if(it == tokens.end()){
         fprintf(stderr, "Unexpected end of input\n");
         exit(1);

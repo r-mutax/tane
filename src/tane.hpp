@@ -11,6 +11,7 @@
 #include <string>
 #include <format>
 #include <string_view>
+#include <cstdint>
 
 typedef struct Operand Operand;
 
@@ -30,9 +31,9 @@ typedef enum TokenKind {
 
 struct Token{
     TokenKind kind;
-    int val;
+    int32_t val;
     char* pos;
-    int len;
+    int32_t len;
 };
 
 class Tokenizer {
@@ -56,7 +57,7 @@ public:
         void reset() { it = tokens.begin(); }
         bool consume(TokenKind kind);
         void expect(TokenKind kind);
-        int expectNum();
+        int32_t expectNum();
     };
     TokenStream& scan(char* p);
     Tokenizer();
@@ -64,7 +65,7 @@ public:
 private:
     std::map<std::string, TokenKind> keyword_map;
     TokenStream ts;
-    TokenKind checkKeyword(char* start, unsigned int len);
+    TokenKind checkKeyword(char* start, uint32_t len);
     bool is_ident1(char c);
     bool is_ident2(char c);
     void printTokenKind(TokenKind kind);
@@ -73,7 +74,7 @@ private:
 Token* tokenize(char* p);
 void print_tokens(Token* token);
 
-typedef int ASTIdx;
+typedef int32_t ASTIdx;
 enum class ASTKind {
     Num,
     Add,
@@ -90,9 +91,9 @@ struct ASTNode {
 
     union {
         struct Function {
-            int a;
+            int32_t a;
         } func;
-        int val;
+        int32_t val;
     } data;
 };
 
@@ -107,20 +108,21 @@ private:
     std::vector<ASTNode> nodes;
     ASTIdx stmt();
     ASTIdx expr();
+    ASTIdx add();
     ASTIdx primary();
     ASTIdx newNode(ASTKind kind, ASTIdx lhs, ASTIdx rhs);
-    ASTIdx newNodeNum(int val);
+    ASTIdx newNodeNum(int32_t val);
 
-    int depth = 0;
+    int32_t depth = 0;
     void printStmt(ASTIdx idx);
     void printExpr(ASTIdx idx);
-    void printAST(const ASTNode& node, int depth = 0) const;
+    void printAST(const ASTNode& node, int32_t depth = 0) const;
 };
 
-typedef unsigned int VRegID;
+typedef int32_t VRegID;
 class VReg{
 public:
-    int val;
+    int32_t val;
 };
 
 enum class IRCmd {
@@ -136,10 +138,25 @@ enum class IRCmd {
 class IRInstr{
 public:
     IRCmd cmd;
-    VRegID s1;
-    VRegID s2;
-    VRegID t;
+    VRegID s1 = -1;
+    VRegID s2 = -1;
+    VRegID t = -1;
 };
+
+enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX };
+
+inline const char* regName(PhysReg r) {
+    switch(r) {
+        case PhysReg::R10: return "r10";
+        case PhysReg::R11: return "r11";
+        case PhysReg::R12: return "r12";
+        case PhysReg::R13: return "r13";
+        case PhysReg::R14: return "r14";
+        case PhysReg::R15: return "r15";
+        case PhysReg::RAX: return "rax";
+        default: return "none";
+    }
+}
 
 class IRFunc{
     friend class IRGenerator;
@@ -152,15 +169,19 @@ public:
         fname = "";
     }
     std::string fname;
-    VRegID newVRegNum(int val){
+    VRegID newVRegNum(int32_t val){
         VReg vr;
         vr.val = val;
         vregs.push_back(vr);
         return vregs.size() - 1;
     }
     VReg& getVReg(VRegID id){
-        if(id >= vregs.size()){
-            fprintf(stderr, "Invalid VRegID: %u\n", id);
+        if(id < 0){
+            fprintf(stderr, "VReg is not used.\n");
+            exit(1);
+        }
+        if((size_t)id >= vregs.size()){
+            fprintf(stderr, "Invalid VRegID: %d\n", id);
             exit(1);
         }
         return vregs[id];

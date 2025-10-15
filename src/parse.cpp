@@ -12,10 +12,26 @@ ASTIdx Parser::stmt(){
         return n;
     } else {
         // expr statement
-        ASTIdx n = expr();
+        ASTIdx n = add();
         ts.expect(TK_SEMICOLON);
         return n;
     }
+}
+
+ASTIdx Parser::add(){
+    ASTIdx node = expr();
+    while(true){
+        if(ts.consume(TK_ADD)){
+            node = newNode(ASTKind::Add, node, expr());
+            continue;
+        }
+        if(ts.consume(TK_SUB)){
+            node = newNode(ASTKind::Sub, node, expr());
+            continue;
+        }
+        break;
+    }
+    return node;
 }
 
 ASTIdx Parser::expr(){
@@ -23,7 +39,7 @@ ASTIdx Parser::expr(){
 }
 
 ASTIdx Parser::primary(){
-    int n = ts.expectNum();
+    int32_t n = ts.expectNum();
     return newNodeNum(n);
 }
 
@@ -37,7 +53,7 @@ ASTIdx Parser::newNode(ASTKind kind, ASTIdx lhs, ASTIdx rhs) {
     return nodes.size() - 1;
 }
 
-ASTIdx Parser::newNodeNum(int val) {
+ASTIdx Parser::newNodeNum(int32_t val) {
     ASTIdx idx = newNode(ASTKind::Num, 0, 0);
     nodes[idx].data.val = val;
     return idx;
@@ -73,8 +89,8 @@ void Parser::printExpr(ASTIdx idx) {
     depth--;
 }
 
-void Parser::printAST(const ASTNode& node, int depth) const {
-    for(int i = 0; i < depth; i++) {
+void Parser::printAST(const ASTNode& node, int32_t depth) const {
+    for(int32_t i = 0; i < depth; i++) {
         printf("  ");
     }
     switch(node.kind) {
@@ -97,7 +113,7 @@ void Parser::printAST(const ASTNode& node, int depth) const {
             printf("ND_RETURN\n");
             break;
         default:
-            printf("Unknown AST node kind: %d\n", (int)node.kind);
+            printf("Unknown AST node kind: %d\n", (int32_t)node.kind);
             exit(1);
     }
 }

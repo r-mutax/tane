@@ -87,9 +87,9 @@ run_test() {
 run_test "return 1;" "1"
 
 # Additional tests (commented out until implementation supports them)
-# run_test "return 0;" "0"
-# run_test "return 42;" "42"
-# run_test "return 123;" "123"
+run_test "return 0;" "0"
+run_test "return 42;" "42"
+run_test "return 123;" "123"
 
 # More complex tests (commented out until parser supports them)
 # run_test "return 1+2*3;" "7"
