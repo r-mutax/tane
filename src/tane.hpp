@@ -117,7 +117,11 @@ private:
     void printAST(const ASTNode& node, int depth = 0) const;
 };
 
-typedef unsigned int VReg;
+typedef unsigned int VRegID;
+class VReg{
+public:
+    int val;
+};
 
 enum class IRCmd {
     ADD,
@@ -132,26 +136,52 @@ enum class IRCmd {
 class IRInstr{
 public:
     IRCmd cmd;
-    VReg s1;
-    VReg s2;
-    VReg t;
+    VRegID s1;
+    VRegID s2;
+    VRegID t;
 };
 
 class IRFunc{
-public:
-    std::string fname;
+    friend class IRGenerator;
+    friend class X86Generator;
     std::vector<IRInstr> instrPool;
+    std::vector<VReg> vregs;
+public:
+    void clean(){
+        instrPool.clear();
+        fname = "";
+    }
+    std::string fname;
+    VRegID newVRegNum(int val){
+        VReg vr;
+        vr.val = val;
+        vregs.push_back(vr);
+        return vregs.size() - 1;
+    }
+    VReg& getVReg(VRegID id){
+        if(id >= vregs.size()){
+            fprintf(stderr, "Invalid VRegID: %u\n", id);
+            exit(1);
+        }
+        return vregs[id];
+    }
 };
 
 class IRModule{
 public:
+    std::vector<IRFunc> funcPool;
 };
 
 class IRGenerator{
+private:
+    IRFunc func;
+    IRFunc genFunc(void);
+    void genStmt(ASTIdx idx);
+    VRegID genExpr(ASTIdx idx);
 public:
     Parser& ps;
     ASTIdx root;
-    IRGenerator(ASTIdx idx, Parser parser) : ps(parser), root(idx) {}
+    IRGenerator(ASTIdx idx, Parser& parser) : ps(parser), root(idx) {}
     IRModule module;
     IRModule& run();
     void printIR(const IRModule& irm);
@@ -233,6 +263,7 @@ public:
 class X86Generator{
     IRModule& irm;
     Output out;
+    void emitFunc(IRFunc& func);
 public:
     X86Generator(IRModule& irm_) : irm(irm_), out() {}
     void setOutputFile(const char* filename) {
