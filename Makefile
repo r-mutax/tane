@@ -10,7 +10,7 @@ CXX     ?= g++
 
 # Flags
 CXXSTD  ?= c++20
-CXXFLAGS?= -O2 -g -Wall -Wextra -Wpedantic -std=$(CXXSTD)
+CXXFLAGS?= -O0 -g3 -Wall -Wextra -Wpedantic -std=$(CXXSTD)
 LDFLAGS ?=
 LDLIBS  ?=
 INCLUDES?= -Isrc
