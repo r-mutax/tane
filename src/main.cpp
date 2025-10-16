@@ -7,11 +7,11 @@ int main(int argc, char** argv) {
 
     Tokenizer tokenizer;
     Tokenizer::TokenStream& ts = tokenizer.scan(argv[1]);
-    tokenizer.printTokens();
+    //tokenizer.printTokens();
 
     Parser parser(ts);
     ASTIdx root = parser.parseFile();
-    parser.printAST(root);
+    //parser.printAST(root);
 
     IRGenerator irgen(root, parser);
     IRModule& mod = irgen.run();

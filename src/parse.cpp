@@ -58,7 +58,23 @@ ASTIdx Parser::mul(){
     }
 }
 
+ASTIdx Parser::unary(){
+    if(ts.consume(TK_ADD)){
+        return primary();
+    }
+    if(ts.consume(TK_SUB)){
+        return newNode(ASTKind::Sub, newNodeNum(0), primary());
+    }
+    return primary();
+}
+
 ASTIdx Parser::primary(){
+    if(ts.consume(TK_L_PAREN)){
+        ASTIdx n = expr();
+        ts.expect(TK_R_PAREN);
+        return n;
+    }
+
     int32_t n = ts.expectNum();
     return newNodeNum(n);
 }

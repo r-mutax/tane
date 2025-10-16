@@ -95,6 +95,11 @@ run_test "return 6*7;" "42"
 run_test "return 20/4;" "5"
 run_test "return 10%3;" "1"
 run_test "return 2+3*4;" "14"
+run_test "return (2+3)*4;" "20"
+run_test "return 10-2*3;" "4"
+run_test "return (10-2)*3;" "24"
+run_test "return 18/2+4;" "13"
+run_test "return 18/(2+4);" "3"
 
 #run_test "return 2+3*4;" "14"
 # More complex tests (commented out until parser supports them)

@@ -112,6 +112,7 @@ private:
     ASTIdx expr();
     ASTIdx add();
     ASTIdx mul();
+    ASTIdx unary();
     ASTIdx primary();
     ASTIdx newNode(ASTKind kind, ASTIdx lhs, ASTIdx rhs);
     ASTIdx newNodeNum(int32_t val);
