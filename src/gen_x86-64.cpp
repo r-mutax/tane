@@ -25,6 +25,67 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  ret\n");
                 break;
             }
+            case IRCmd::ADD:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  add {}, {}\n", regName(rt), regName(r2));
+                break;
+            }
+            case IRCmd::SUB:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  sub {}, {}\n", regName(rt), regName(r2));
+                break;
+            }
+            case IRCmd::MUL:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  imul {}, {}\n", regName(rt), regName(r2));
+                break;
+            }
+            case IRCmd::DIV:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(r1 != PhysReg::RAX){
+                    out.print("  mov rax, {}\n", regName(r1));
+                }
+                out.print("  cqo\n");
+                out.print("  idiv {}\n", regName(r2));
+                if(rt != PhysReg::RAX){
+                    out.print("  mov {}, rax\n", regName(rt));
+                }
+                break;
+            }
+            case IRCmd::MOD:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(r1 != PhysReg::RAX){
+                    out.print("  mov rax, {}\n", regName(r1));
+                }
+                out.print("  cqo\n");
+                out.print("  idiv {}\n", regName(r2));
+                out.print("  mov {}, rdx\n", regName(rt));
+                break;
+            }
             case IRCmd::MOV_IMM:
             {
                 PhysReg r = func.regAlloc.alloc(instr.t);

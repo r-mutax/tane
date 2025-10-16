@@ -89,8 +89,14 @@ run_test "return 1;" "1"
 # Additional tests (commented out until implementation supports them)
 run_test "return 0;" "0"
 run_test "return 42;" "42"
-run_test "return 123;" "123"
+run_test "return 5+3;" "8"
+run_test "return 10-4;" "6"
+run_test "return 6*7;" "42"
+run_test "return 20/4;" "5"
+run_test "return 10%3;" "1"
+run_test "return 2+3*4;" "14"
 
+#run_test "return 2+3*4;" "14"
 # More complex tests (commented out until parser supports them)
 # run_test "return 1+2*3;" "7"
 # run_test "return 10/2+5;" "10"

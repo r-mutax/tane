@@ -25,6 +25,9 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
             case '/':
                 ts.addToken(TK_DIV, p++);
                 break;
+            case '%':
+                ts.addToken(TK_MOD, p++);
+                break;
             case '(':
                 ts.addToken(TK_L_PAREN, p++);
                 break;
@@ -149,6 +152,9 @@ void Tokenizer::printTokenKind(TokenKind kind){
             break;
         case TK_DIV:
             printf("TK_DIV");
+            break;
+        case TK_MOD:
+            printf("TK_MOD");
             break;
         case TK_L_PAREN:
             printf("TK_L_PAREN");

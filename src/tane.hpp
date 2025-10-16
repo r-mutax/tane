@@ -21,6 +21,7 @@ typedef enum TokenKind {
     TK_SUB,         // -
     TK_MUL,         // *
     TK_DIV,         // /
+    TK_MOD,         // %
     TK_L_PAREN,     // (
     TK_R_PAREN,     // )
     TK_SEMICOLON,   // ;
@@ -81,6 +82,7 @@ enum class ASTKind {
     Sub,
     Mul,
     Div,
+    Mod,
     Return,
 };
 
@@ -109,6 +111,7 @@ private:
     ASTIdx stmt();
     ASTIdx expr();
     ASTIdx add();
+    ASTIdx mul();
     ASTIdx primary();
     ASTIdx newNode(ASTKind kind, ASTIdx lhs, ASTIdx rhs);
     ASTIdx newNodeNum(int32_t val);
@@ -134,6 +137,7 @@ enum class IRCmd {
     SUB,
     MUL,
     DIV,
+    MOD,
     MOV,
     MOV_IMM,
     RET,
@@ -226,6 +230,14 @@ public:
         fname = "";
     }
     std::string fname;
+    void newIRInstr(const IRCmd cmd, VRegID s1 = -1, VRegID s2 = -1, VRegID t = -1) {
+        IRInstr instr;
+        instr.cmd = cmd;
+        instr.s1 = s1;
+        instr.s2 = s2;
+        instr.t = t;
+        instrPool.push_back(instr);
+    }
     VRegID newVReg(){
         VReg vr;
         vregs.push_back(vr);

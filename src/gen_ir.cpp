@@ -45,7 +45,45 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
         default:
             break;
     }
-    fprintf(stderr, "%d\n", idx);
+
+    VRegID lhs = genExpr(node.lhs);
+    VRegID rhs = genExpr(node.rhs);
+    
+    switch(node.kind){
+        case ASTKind::Add:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::ADD, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::Sub:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::SUB, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::Mul:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::MUL, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::Div:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::DIV, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::Mod:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::MOD, lhs, rhs, t);
+                return t;
+            }
+        default:
+            break;
+    }
+
     fprintf(stderr, "Unknown AST node kind in expression: %d\n", (uint32_t)node.kind);
     exit(1);
 }

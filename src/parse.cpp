@@ -19,7 +19,43 @@ ASTIdx Parser::stmt(){
 }
 
 ASTIdx Parser::expr(){
-    return primary();
+    return add();
+}
+
+ASTIdx Parser::add(){
+    ASTIdx lhs = mul();
+
+    while(true){
+        if(ts.consume(TK_ADD)){
+            lhs = newNode(ASTKind::Add, lhs, mul());
+            continue;
+        }
+        if(ts.consume(TK_SUB)){
+            lhs = newNode(ASTKind::Sub, lhs, mul());
+            continue;
+        }
+        return lhs;
+    }
+}
+
+ASTIdx Parser::mul(){
+    ASTIdx lhs = primary();
+
+    while(true){
+        if(ts.consume(TK_MUL)){
+            lhs = newNode(ASTKind::Mul, lhs, primary());
+            continue;
+        }
+        if(ts.consume(TK_DIV)){
+            lhs = newNode(ASTKind::Div, lhs, primary());
+            continue;
+        }
+        if(ts.consume(TK_MOD)){
+            lhs = newNode(ASTKind::Mod, lhs, primary());
+            continue;
+        }
+        return lhs;
+    }
 }
 
 ASTIdx Parser::primary(){
@@ -92,6 +128,9 @@ void Parser::printAST(const ASTNode& node, int32_t depth) const {
             break;
         case ASTKind::Div:
             printf("ND_DIV\n");
+            break;
+        case ASTKind::Mod:
+            printf("ND_MOD\n");
             break;
         case ASTKind::Return:
             printf("ND_RETURN\n");
