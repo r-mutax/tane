@@ -85,7 +85,6 @@ bool Tokenizer::TokenStream::consume(TokenKind kind){
     if(it == tokens.end()){
         return false;
     }
-
     if(it->kind != kind){
         return false;
     }

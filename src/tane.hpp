@@ -119,11 +119,15 @@ private:
     void printAST(const ASTNode& node, int32_t depth = 0) const;
 };
 
+enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX };
+
 typedef int32_t VRegID;
 class VReg{
 public:
     int32_t val;
+    PhysReg assigned = PhysReg::None;
 };
+
 
 enum class IRCmd {
     ADD,
@@ -131,6 +135,7 @@ enum class IRCmd {
     MUL,
     DIV,
     MOV,
+    MOV_IMM,
     RET,
 };
 
@@ -141,9 +146,9 @@ public:
     VRegID s1 = -1;
     VRegID s2 = -1;
     VRegID t = -1;
+    int32_t imm = 0;
 };
 
-enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX };
 
 inline const char* regName(PhysReg r) {
     switch(r) {
@@ -161,19 +166,79 @@ inline const char* regName(PhysReg r) {
 class IRFunc{
     friend class IRGenerator;
     friend class X86Generator;
+    friend class RegAlloc;
     std::vector<IRInstr> instrPool;
     std::vector<VReg> vregs;
+
+    class RegAlloc{
+        std::vector<PhysReg> freeRegs;
+        std::vector<VRegID> lastUse;
+        IRFunc& f;
+    public:
+        RegAlloc(IRFunc& func) : f(func) {
+            freeRegs = {PhysReg::R10, PhysReg::R11, PhysReg::R12, PhysReg::R13, PhysReg::R14, PhysReg::R15};
+        }
+        void computeUse(){
+            size_t nV = f.vregs.size();
+            lastUse.assign(nV, -1);
+            for(size_t i = 0; i < f.instrPool.size(); i++) {
+                const auto& ins = f.instrPool[i];
+                auto mark = [&](VRegID v) {
+                    if(v >= 0 && (size_t)v < nV) {
+                        lastUse[v] = std::max(lastUse[v], (VRegID)i);
+                    }
+                };
+                mark(ins.s1);
+                mark(ins.s2);
+                mark(ins.t);
+            }
+        }
+        void expireAt(size_t pos){
+            for(size_t vid = 0; vid < f.vregs.size(); vid++){
+                auto& vr = f.vregs[vid];
+                if(vr.assigned != PhysReg::None     // assigned to physical register_
+                    && lastUse[vid] >= 0            // used at least once
+                    && lastUse[vid] < (VRegID)pos)          // last used before current position  
+                {
+                    freeRegs.push_back(vr.assigned);
+                    vr.assigned = PhysReg::None;
+                }
+            }
+        }
+        PhysReg alloc(VRegID vid){
+            auto& vr = f.getVReg(vid);
+            if(vr.assigned != PhysReg::None) return vr.assigned;
+            if(!freeRegs.empty()){
+                PhysReg r = freeRegs.back();
+                freeRegs.pop_back();
+                vr.assigned = r;
+                return r;
+            }
+            fprintf(stderr, "No free registers available for VReg %d\n", vid);
+            exit(1);
+        }
+    };
+
+    RegAlloc regAlloc{*this};
 public:
     void clean(){
         instrPool.clear();
         fname = "";
     }
     std::string fname;
-    VRegID newVRegNum(int32_t val){
+    VRegID newVReg(){
         VReg vr;
-        vr.val = val;
         vregs.push_back(vr);
         return vregs.size() - 1;
+    }
+    VRegID newVRegNum(int32_t val){
+        VRegID vid = newVReg();
+        IRInstr isntr;
+        isntr.cmd = IRCmd::MOV_IMM;
+        isntr.t = vid;
+        isntr.imm = val;
+        instrPool.push_back(isntr);
+        return vid;
     }
     VReg& getVReg(VRegID id){
         if(id < 0){

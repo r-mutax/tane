@@ -12,26 +12,10 @@ ASTIdx Parser::stmt(){
         return n;
     } else {
         // expr statement
-        ASTIdx n = add();
+        ASTIdx n = expr();
         ts.expect(TK_SEMICOLON);
         return n;
     }
-}
-
-ASTIdx Parser::add(){
-    ASTIdx node = expr();
-    while(true){
-        if(ts.consume(TK_ADD)){
-            node = newNode(ASTKind::Add, node, expr());
-            continue;
-        }
-        if(ts.consume(TK_SUB)){
-            node = newNode(ASTKind::Sub, node, expr());
-            continue;
-        }
-        break;
-    }
-    return node;
 }
 
 ASTIdx Parser::expr(){
