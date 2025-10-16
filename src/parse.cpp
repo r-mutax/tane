@@ -19,7 +19,23 @@ ASTIdx Parser::stmt(){
 }
 
 ASTIdx Parser::expr(){
-    return add();
+    return relational();
+}
+
+ASTIdx Parser::relational(){
+    ASTIdx lhs = add();
+
+    while(true){
+        if(ts.consume(TK_EQUAL)){
+            lhs = newNode(ASTKind::Equal, lhs, add());
+            continue;
+        }
+        if(ts.consume(TK_NOT_EQUAL)){
+            lhs = newNode(ASTKind::NotEqual, lhs, add());
+            continue;
+        }
+        return lhs;
+    }
 }
 
 ASTIdx Parser::add(){
@@ -39,19 +55,19 @@ ASTIdx Parser::add(){
 }
 
 ASTIdx Parser::mul(){
-    ASTIdx lhs = primary();
+    ASTIdx lhs = unary();
 
     while(true){
         if(ts.consume(TK_MUL)){
-            lhs = newNode(ASTKind::Mul, lhs, primary());
+            lhs = newNode(ASTKind::Mul, lhs, unary());
             continue;
         }
         if(ts.consume(TK_DIV)){
-            lhs = newNode(ASTKind::Div, lhs, primary());
+            lhs = newNode(ASTKind::Div, lhs, unary());
             continue;
         }
         if(ts.consume(TK_MOD)){
-            lhs = newNode(ASTKind::Mod, lhs, primary());
+            lhs = newNode(ASTKind::Mod, lhs, unary());
             continue;
         }
         return lhs;

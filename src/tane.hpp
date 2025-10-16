@@ -22,6 +22,8 @@ typedef enum TokenKind {
     TK_MUL,         // *
     TK_DIV,         // /
     TK_MOD,         // %
+    TK_EQUAL,       // ==
+    TK_NOT_EQUAL,   // !=
     TK_L_PAREN,     // (
     TK_R_PAREN,     // )
     TK_SEMICOLON,   // ;
@@ -83,6 +85,8 @@ enum class ASTKind {
     Mul,
     Div,
     Mod,
+    Equal,
+    NotEqual,
     Return,
 };
 
@@ -110,6 +114,7 @@ private:
     std::vector<ASTNode> nodes;
     ASTIdx stmt();
     ASTIdx expr();
+    ASTIdx relational();
     ASTIdx add();
     ASTIdx mul();
     ASTIdx unary();
@@ -139,8 +144,11 @@ enum class IRCmd {
     MUL,
     DIV,
     MOD,
+    EQUAL,
+    NEQUAL,
     MOV,
     MOV_IMM,
+
     RET,
 };
 

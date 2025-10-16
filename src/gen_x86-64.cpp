@@ -86,6 +86,26 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov {}, rdx\n", regName(rt));
                 break;
             }
+            case IRCmd::EQUAL:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                out.print("  cmp {}, {}\n", regName(r1), regName(r2));
+                out.print("  sete al\n");
+                out.print("  movzx {}, al\n", regName(rt));
+                break;
+            }
+            case IRCmd::NEQUAL:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                out.print("  cmp {}, {}\n", regName(r1), regName(r2));
+                out.print("  setne al\n");
+                out.print("  movzx {}, al\n", regName(rt));
+                break;
+            }
             case IRCmd::MOV_IMM:
             {
                 PhysReg r = func.regAlloc.alloc(instr.t);

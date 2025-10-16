@@ -28,6 +28,26 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
             case '%':
                 ts.addToken(TK_MOD, p++);
                 break;
+            case '=':
+                if(*(p + 1) == '='){
+                    ts.addToken(TK_EQUAL, p);
+                    ts.getTop().len = 2;
+                    p += 2;
+                    break;
+                } else {
+                    fprintf(stderr, "Invalid token: %s\n", p);
+                    exit(1);
+                }
+            case '!':
+                if(*(p + 1) == '='){
+                    ts.addToken(TK_NOT_EQUAL, p);
+                    ts.getTop().len = 2;
+                    p += 2;
+                    break;
+                } else {
+                    fprintf(stderr, "Invalid token: %s\n", p);
+                    exit(1);
+                }
             case '(':
                 ts.addToken(TK_L_PAREN, p++);
                 break;
