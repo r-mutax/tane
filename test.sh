@@ -115,6 +115,13 @@ run_test "return 1 & 3;" "1"
 run_test "return 7 & 3;" "3"
 run_test "return 5 ^ 3;" "6"
 run_test "return 5 | 2;" "7"
+run_test "return 1 || 0;" "1"
+run_test "return 0 || 1;" "1"
+run_test "return 0 || 0;" "0"
+run_test "return 1 && 1;" "1"
+run_test "return 1 && 0;" "0"
+run_test "return 0 && 1;" "0"
+run_test "return 0 && 0;" "0"
 
 #run_test "return 2+3*4;" "14"
 # More complex tests (commented out until parser supports them)

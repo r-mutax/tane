@@ -19,7 +19,31 @@ ASTIdx Parser::stmt(){
 }
 
 ASTIdx Parser::expr(){
-    return bitwise_or();
+    return logical_or();
+}
+
+ASTIdx Parser::logical_or(){
+    ASTIdx lhs = logical_and();
+
+    while(true){
+        if(ts.consume(TK_OR_OR)){
+            lhs = newNode(ASTKind::LogicalOr, lhs, logical_and());
+            continue;
+        }
+        return lhs;
+    }
+}
+
+ASTIdx Parser::logical_and(){
+    ASTIdx lhs = bitwise_or();
+
+    while(true){
+        if(ts.consume(TK_AND_AND)){
+            lhs = newNode(ASTKind::LogicalAnd, lhs, bitwise_or());
+            continue;
+        }
+        return lhs;
+    }
 }
 
 ASTIdx Parser::bitwise_or(){

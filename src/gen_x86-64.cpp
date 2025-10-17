@@ -86,6 +86,32 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov {}, rdx\n", regName(rt));
                 break;
             }
+            case IRCmd::LOGICAL_OR:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                out.print("  cmp {}, 0\n", regName(r1));
+                out.print("  setne al\n");
+                out.print("  cmp {}, 0\n", regName(r2));
+                out.print("  setne cl\n");
+                out.print("  or al, cl\n");
+                out.print("  movzx {}, al\n", regName(rt));
+                break;
+            }
+            case IRCmd::LOGICAL_AND:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                out.print("  cmp {}, 0\n", regName(r1));
+                out.print("  setne al\n");
+                out.print("  cmp {}, 0\n", regName(r2));
+                out.print("  setne cl\n");
+                out.print("  and al, cl\n");
+                out.print("  movzx {}, al\n", regName(rt));
+                break;
+            }
             case IRCmd::BIT_OR:
             {
                 PhysReg r1 = func.regAlloc.alloc(instr.s1);

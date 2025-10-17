@@ -31,6 +31,8 @@ typedef enum TokenKind {
     TK_AND,         // &
     TK_HAT,         // ^
     TK_OR,          // |
+    TK_AND_AND,     // &&
+    TK_OR_OR,       // ||
     TK_L_PAREN,     // (
     TK_R_PAREN,     // )
     TK_SEMICOLON,   // ;
@@ -92,6 +94,8 @@ enum class ASTKind {
     Mul,
     Div,
     Mod,
+    LogicalOr,
+    LogicalAnd,
     BitOr,
     BitXor,
     BitAnd,
@@ -128,6 +132,8 @@ private:
     std::vector<ASTNode> nodes;
     ASTIdx stmt();
     ASTIdx expr();
+    ASTIdx logical_or();
+    ASTIdx logical_and();
     ASTIdx bitwise_or();
     ASTIdx bitwise_xor();
     ASTIdx bitwise_and();
@@ -163,6 +169,8 @@ enum class IRCmd {
     MUL,
     DIV,
     MOD,
+    LOGICAL_OR,
+    LOGICAL_AND,
     BIT_XOR,
     BIT_OR,
     BIT_AND,

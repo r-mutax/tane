@@ -72,14 +72,28 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                 }
                 break;
             case '|':
-                ts.addToken(TK_OR, p++);
-                break;
+                if(*(p + 1) == '|'){
+                    ts.addToken(TK_OR_OR, p);
+                    ts.getTop().len = 2;
+                    p += 2;
+                    break;
+                } else {
+                    ts.addToken(TK_OR, p++);
+                    break;
+                }
             case '^':
                 ts.addToken(TK_HAT, p++);
                 break;
             case '&':
-                ts.addToken(TK_AND, p++);
-                break;
+                if(*(p + 1) == '&'){
+                    ts.addToken(TK_AND_AND, p);
+                    ts.getTop().len = 2;
+                    p += 2;
+                    break;
+                } else {
+                    ts.addToken(TK_AND, p++);
+                    break;
+                }
             case '(':
                 ts.addToken(TK_L_PAREN, p++);
                 break;
