@@ -92,6 +92,18 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
                 func.newIRInstr(IRCmd::NEQUAL, lhs, rhs, t);
                 return t;
             }
+        case ASTKind::LessThan:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::LT, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::LessEqual:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::LE, lhs, rhs, t);
+                return t;
+            }
         default:
             break;
     }

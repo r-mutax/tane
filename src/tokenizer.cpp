@@ -48,6 +48,16 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                     fprintf(stderr, "Invalid token: %s\n", p);
                     exit(1);
                 }
+            case '<':
+                if(*(p + 1) == '='){
+                    ts.addToken(TK_LESS_EQUAL, p);
+                    ts.getTop().len = 2;
+                    p += 2;
+                    break;
+                } else {
+                    ts.addToken(TK_LESS_THAN, p++);
+                    break;
+                }
             case '(':
                 ts.addToken(TK_L_PAREN, p++);
                 break;

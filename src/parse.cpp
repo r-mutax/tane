@@ -19,25 +19,40 @@ ASTIdx Parser::stmt(){
 }
 
 ASTIdx Parser::expr(){
-    return relational();
+    return equality();
 }
 
-ASTIdx Parser::relational(){
-    ASTIdx lhs = add();
+ASTIdx Parser::equality(){
+    ASTIdx lhs = relational();
 
     while(true){
         if(ts.consume(TK_EQUAL)){
-            lhs = newNode(ASTKind::Equal, lhs, add());
+            lhs = newNode(ASTKind::Equal, lhs, relational());
             continue;
         }
         if(ts.consume(TK_NOT_EQUAL)){
-            lhs = newNode(ASTKind::NotEqual, lhs, add());
+            lhs = newNode(ASTKind::NotEqual, lhs, relational());
             continue;
         }
         return lhs;
     }
 }
 
+ASTIdx Parser::relational(){
+    ASTIdx lhs = add();
+
+    while(true){
+        if(ts.consume(TK_LESS_THAN)){
+            lhs = newNode(ASTKind::LessThan, lhs, add());
+            continue;
+        }
+        if(ts.consume(TK_LESS_EQUAL)){
+            lhs = newNode(ASTKind::LessEqual, lhs, add());
+            continue;
+        }
+        return lhs;
+    }
+}
 ASTIdx Parser::add(){
     ASTIdx lhs = mul();
 
