@@ -19,7 +19,43 @@ ASTIdx Parser::stmt(){
 }
 
 ASTIdx Parser::expr(){
-    return equality();
+    return bitwise_or();
+}
+
+ASTIdx Parser::bitwise_or(){
+    ASTIdx lhs = bitwise_xor();
+
+    while(true){
+        if(ts.consume(TK_OR)){
+            lhs = newNode(ASTKind::BitOr, lhs, bitwise_xor());
+            continue;
+        }
+        return lhs;
+    }
+}
+
+ASTIdx Parser::bitwise_xor(){
+    ASTIdx lhs = bitwise_and();
+
+    while(true){
+        if(ts.consume(TK_HAT)){
+            lhs = newNode(ASTKind::BitXor, lhs, bitwise_and());
+            continue;
+        }
+        return lhs;
+    }
+}
+
+ASTIdx Parser::bitwise_and(){
+    ASTIdx lhs = equality();
+
+    while(true){
+        if(ts.consume(TK_AND)){
+            lhs = newNode(ASTKind::BitAnd, lhs, equality());
+            continue;
+        }
+        return lhs;
+    }
 }
 
 ASTIdx Parser::equality(){

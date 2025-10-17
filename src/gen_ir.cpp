@@ -80,6 +80,24 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
                 func.newIRInstr(IRCmd::MOD, lhs, rhs, t);
                 return t;
             }
+        case ASTKind::BitOr:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::BIT_OR, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::BitXor:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::BIT_XOR, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::BitAnd:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::BIT_AND, lhs, rhs, t);
+                return t;
+            }
         case ASTKind::Equal:
             {
                 VRegID t = func.newVReg();

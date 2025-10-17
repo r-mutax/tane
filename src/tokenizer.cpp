@@ -70,6 +70,16 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                     p += 2;
                     break;
                 }
+                break;
+            case '|':
+                ts.addToken(TK_OR, p++);
+                break;
+            case '^':
+                ts.addToken(TK_HAT, p++);
+                break;
+            case '&':
+                ts.addToken(TK_AND, p++);
+                break;
             case '(':
                 ts.addToken(TK_L_PAREN, p++);
                 break;

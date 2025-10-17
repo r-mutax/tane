@@ -86,6 +86,39 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov {}, rdx\n", regName(rt));
                 break;
             }
+            case IRCmd::BIT_OR:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  or {}, {}\n", regName(rt), regName(r2));
+                break;
+            }
+            case IRCmd::BIT_XOR:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  xor {}, {}\n", regName(rt), regName(r2));
+                break;
+            }
+            case IRCmd::BIT_AND:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  and {}, {}\n", regName(rt), regName(r2));
+                break;
+            }
             case IRCmd::EQUAL:
             {
                 PhysReg r1 = func.regAlloc.alloc(instr.s1);
