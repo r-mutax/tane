@@ -104,6 +104,18 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
                 func.newIRInstr(IRCmd::LE, lhs, rhs, t);
                 return t;
             }
+        case ASTKind::LShift:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::LSHIFT, lhs, rhs, t);
+                return t;
+            }
+        case ASTKind::RShift:
+            {
+                VRegID t = func.newVReg();
+                func.newIRInstr(IRCmd::RSHIFT, lhs, rhs, t);
+                return t;
+            }
         default:
             break;
     }

@@ -107,6 +107,10 @@ run_test "return 3 < 2;" "0"
 run_test "return 2 <= 2;" "1"
 run_test "return 2 <= 3;" "1"
 run_test "return 3 <= 2;" "0"
+run_test "return 3 >> 1;" "1"
+run_test "return 4 >> 1;" "2"
+run_test "return 4 << 1;" "8"
+run_test "return 1 << 3;" "8"
 
 #run_test "return 2+3*4;" "14"
 # More complex tests (commented out until parser supports them)

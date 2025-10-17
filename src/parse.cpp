@@ -39,20 +39,37 @@ ASTIdx Parser::equality(){
 }
 
 ASTIdx Parser::relational(){
-    ASTIdx lhs = add();
+    ASTIdx lhs = shift();
 
     while(true){
         if(ts.consume(TK_LESS_THAN)){
-            lhs = newNode(ASTKind::LessThan, lhs, add());
+            lhs = newNode(ASTKind::LessThan, lhs, shift());
             continue;
         }
         if(ts.consume(TK_LESS_EQUAL)){
-            lhs = newNode(ASTKind::LessEqual, lhs, add());
+            lhs = newNode(ASTKind::LessEqual, lhs, shift());
             continue;
         }
         return lhs;
     }
 }
+
+ASTIdx Parser::shift(){
+    ASTIdx lhs = add();
+
+    while(true){
+        if(ts.consume(TK_LSHIFT)){
+            lhs = newNode(ASTKind::LShift, lhs, add());
+            continue;
+        }
+        if(ts.consume(TK_RSHIFT)){
+            lhs = newNode(ASTKind::RShift, lhs, add());
+            continue;
+        }
+        return lhs;
+    }
+}
+
 ASTIdx Parser::add(){
     ASTIdx lhs = mul();
 

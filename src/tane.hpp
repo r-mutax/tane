@@ -26,6 +26,8 @@ typedef enum TokenKind {
     TK_NOT_EQUAL,   // !=
     TK_LESS_THAN,    // <
     TK_LESS_EQUAL,   // <=
+    TK_LSHIFT,       // <<
+    TK_RSHIFT,       // >>
     TK_L_PAREN,     // (
     TK_R_PAREN,     // )
     TK_SEMICOLON,   // ;
@@ -91,6 +93,8 @@ enum class ASTKind {
     NotEqual,
     LessThan,
     LessEqual,
+    LShift,
+    RShift,
     Return,
 };
 
@@ -120,6 +124,7 @@ private:
     ASTIdx expr();
     ASTIdx equality();
     ASTIdx relational();
+    ASTIdx shift();
     ASTIdx add();
     ASTIdx mul();
     ASTIdx unary();
@@ -153,6 +158,8 @@ enum class IRCmd {
     NEQUAL,
     LT,
     LE,
+    LSHIFT,
+    RSHIFT,
     MOV,
     MOV_IMM,
     RET,
@@ -178,6 +185,19 @@ inline const char* regName(PhysReg r) {
         case PhysReg::R14: return "r14";
         case PhysReg::R15: return "r15";
         case PhysReg::RAX: return "rax";
+        default: return "none";
+    }
+}
+
+inline const char* regName8(PhysReg r) {
+    switch(r) {
+        case PhysReg::R10: return "r10b";
+        case PhysReg::R11: return "r11b";
+        case PhysReg::R12: return "r12b";
+        case PhysReg::R13: return "r13b";
+        case PhysReg::R14: return "r14b";
+        case PhysReg::R15: return "r15b";
+        case PhysReg::RAX: return "al";
         default: return "none";
     }
 }

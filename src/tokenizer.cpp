@@ -54,8 +54,20 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                     ts.getTop().len = 2;
                     p += 2;
                     break;
+                } else if(*(p + 1) == '<'){
+                    ts.addToken(TK_LSHIFT, p);
+                    ts.getTop().len = 2;
+                    p += 2;
+                    break;
                 } else {
                     ts.addToken(TK_LESS_THAN, p++);
+                    break;
+                }
+            case '>':
+                if(*(p + 1) == '>'){
+                    ts.addToken(TK_RSHIFT, p);
+                    ts.getTop().len = 2;
+                    p += 2;
                     break;
                 }
             case '(':

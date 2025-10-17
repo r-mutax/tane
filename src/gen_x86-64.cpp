@@ -126,6 +126,30 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  movzx {}, al\n", regName(rt));
                 break;
             }
+            case IRCmd::LSHIFT:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  mov cl, {}\n", regName8(r2));
+                out.print("  shl {}, cl\n", regName(rt));
+                break;
+            }
+            case IRCmd::RSHIFT:
+            {
+                PhysReg r1 = func.regAlloc.alloc(instr.s1);
+                PhysReg r2 = func.regAlloc.alloc(instr.s2);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                if(rt != r1){
+                    out.print("  mov {}, {}\n", regName(rt), regName(r1));
+                }
+                out.print("  mov cl, {}\n", regName8(r2));
+                out.print("  shr {}, cl\n", regName(rt));
+                break;
+            }
             case IRCmd::MOV_IMM:
             {
                 PhysReg r = func.regAlloc.alloc(instr.t);
