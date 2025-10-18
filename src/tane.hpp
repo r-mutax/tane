@@ -343,58 +343,35 @@ public:
     }
 };
 
+typedef int32_t ScopeIdx;
+class Scope{
+public:
+    std::unordered_map<std::string, SymbolIdx> symbols;
+    ScopeIdx parent = -1;
+
+    Scope(ScopeIdx p) : parent(p) {}
+    void insertSymbol(const std::string& name, SymbolIdx idx){
+        symbols[name] = idx;
+    }
+    SymbolIdx findSymbol(const std::string& name){
+        auto it = symbols.find(name);
+        if(it != symbols.end()){
+            return it->second;
+        } else {
+            return -1;  // not found
+        }
+    }
+};
+
 class IRModule{
 public:
     std::vector<IRFunc> funcPool;
-};
-
-class IRGenerator{
-private:
-    IRFunc func;
-    void bindTU(ASTIdx idx);
-    void bindFunc(ASTIdx idx);
-    void bindStmt(ASTIdx idx);
-    IRFunc genFunc(ASTIdx idx);
-    void genStmt(ASTIdx idx);
-    VRegID genExpr(ASTIdx idx);
-
-    typedef int32_t ScopeIdx;
-
-    class Scope{
-    public:
-        std::unordered_map<std::string, SymbolIdx> symbols;
-        ScopeIdx parent = -1;
-
-        Scope(ScopeIdx p) : parent(p) {}
-        void insertSymbol(const std::string& name, SymbolIdx idx){
-            symbols[name] = idx;
-        }
-        SymbolIdx findSymbol(const std::string& name){
-            auto it = symbols.find(name);
-            if(it != symbols.end()){
-                return it->second;
-            } else {
-                return -1;  // not found
-            }
-        }
-    };
     std::vector<Scope> scopes;
     std::vector<Symbol> symbolPool;
+
     ScopeIdx curScope = -1;
     ScopeIdx globalScope = -1;
     ScopeIdx funcScope = -1;
-
-public:
-    Parser& ps;
-    ASTIdx root;
-    IRGenerator(ASTIdx idx, Parser& parser) : ps(parser), root(idx) {
-        scopes.push_back(Scope(-1));
-        curScope = scopes.size() - 1;
-        globalScope = scopes.size() - 1;
-    }
-    IRModule module;
-    IRModule& run();
-    void printIR(const IRModule& irm);
 
     SymbolIdx findSymbol(const std::string& name, ScopeIdx idx){
         if(idx < 0 || (size_t)idx >= scopes.size()){
@@ -472,6 +449,32 @@ public:
             std::cout << "Symbol[" << i << "]: " << sym.name << ", mut=" << sym.isMut << "\n";
         }
     }
+
+};
+
+class IRGenerator{
+private:
+    IRFunc func;
+    void bindTU(ASTIdx idx);
+    void bindFunc(ASTIdx idx);
+    void bindStmt(ASTIdx idx);
+    IRFunc genFunc(ASTIdx idx);
+    void genStmt(ASTIdx idx);
+    VRegID genExpr(ASTIdx idx);
+
+public:
+    Parser& ps;
+    ASTIdx root;
+    IRGenerator(ASTIdx idx, Parser& parser) : ps(parser), root(idx) {
+        
+        module.scopes.push_back(Scope(-1));
+        module.curScope = module.scopes.size() - 1;
+        module.globalScope = module.scopes.size() - 1;
+    }
+    IRModule module;
+    IRModule& run();
+    void printIR(const IRModule& irm);
+
 };
 
 /// Output context interface

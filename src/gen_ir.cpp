@@ -24,9 +24,9 @@ void IRGenerator::bindTU(ASTIdx idx){
 }
 
 void IRGenerator::bindFunc(ASTIdx idx){
-    scopeIn();
+    module.scopeIn();
     bindStmt(idx);
-    scopeOut();
+    module.scopeOut();
 }
 
 void IRGenerator::bindStmt(ASTIdx idx){
@@ -34,11 +34,11 @@ void IRGenerator::bindStmt(ASTIdx idx){
 
     switch(node.kind){
         case ASTKind::CompoundStmt: {
-            scopeIn();
+            module.scopeIn();
             for(auto stmtIdx : node.body){
                 bindStmt(stmtIdx);
             }
-            scopeOut();
+            module.scopeOut();
             break;
         }
         case ASTKind::VarDecl: {
@@ -46,7 +46,7 @@ void IRGenerator::bindStmt(ASTIdx idx){
             sym.name = node.name;
             sym.isMut = node.is_mut;
 
-            insertSymbol(sym);
+            module.insertSymbol(sym);
             break;
         }
         default:
