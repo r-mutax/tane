@@ -7,7 +7,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/tane",
             "args": [
-                "return 1;"
+                "{let mut a; let mut x; let mut y; return 0;}"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

@@ -32,6 +32,21 @@ ASTIdx Parser::stmt(){
         ASTIdx n = newNode(ASTKind::Return, expr(), 0);
         ts.expect(TK_SEMICOLON);
         return n;
+    } else if(ts.consume(TK_LET)){
+        bool is_mut = false;
+        if(ts.consume(TK_MUT)){
+            is_mut = true;
+        }
+        TokenIdx ident = ts.expectIdent();
+
+        ASTIdx n = newNode(ASTKind::VarDecl, 0, 0);
+        ASTNode& node = getAST(n);
+
+        Token t = ts.getToken(ident);
+        node.name = std::string(t.pos, t.len);
+        node.is_mut = is_mut;
+        ts.expect(TK_SEMICOLON);
+        return n;
     } else if(ts.consume(TK_L_BRACE)){
         return compoundStmt();
     } else {
@@ -223,7 +238,7 @@ ASTIdx Parser::newNode(ASTKind kind, ASTIdx lhs, ASTIdx rhs) {
 
 ASTIdx Parser::newNodeNum(int32_t val) {
     ASTIdx idx = newNode(ASTKind::Num, 0, 0);
-    nodes[idx].data.val = val;
+    nodes[idx].val = val;
     return idx;
 }
 
@@ -263,7 +278,7 @@ void Parser::printAST(const ASTNode& node, int32_t depth) const {
     }
     switch(node.kind) {
         case ASTKind::Num:
-            printf("ND_NUM: %d\n", node.data.val);
+            printf("ND_NUM: %d\n", node.val);
             break;
         case ASTKind::Add:
             printf("ND_ADD\n");

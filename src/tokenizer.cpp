@@ -154,6 +154,8 @@ bool Tokenizer::is_ident2(char c){
 Tokenizer::Tokenizer(){
     // Initialize keyword map
     keyword_map["return"] = TK_RETURN;
+    keyword_map["let"] = TK_LET;
+    keyword_map["mut"] = TK_MUT;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){
@@ -195,6 +197,20 @@ int32_t Tokenizer::TokenStream::expectNum(){
     }
 
     return tokens[idx++].val;
+}
+
+TokenIdx Tokenizer::TokenStream::expectIdent(){
+    if(idx == tokens.size()){
+        fprintf(stderr, "Unexpected end of input\n");
+        exit(1);
+    }
+
+    if(tokens[idx].kind != TK_IDENT){
+        fprintf(stderr, "Unexpected token: %d\n", tokens[idx].kind);
+        exit(1);
+    }
+
+    return idx++;
 }
 
 // For debugging

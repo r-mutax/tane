@@ -3,7 +3,9 @@
 IRModule& IRGenerator::run(){
 
     module.funcPool.clear();
-    
+    // Bind the translation unit
+    bindTU(root);
+
     // generation of main function
     ASTNode rootNode = ps.getAST(root);
     for(auto stmtIdx : rootNode.body){
@@ -11,6 +13,45 @@ IRModule& IRGenerator::run(){
     }
 
     return module;
+}
+
+void IRGenerator::bindTU(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+
+    for(auto funcIdx : node.body){
+        bindFunc(funcIdx);
+    }
+}
+
+void IRGenerator::bindFunc(ASTIdx idx){
+    scopeIn();
+    bindStmt(idx);
+    scopeOut();
+}
+
+void IRGenerator::bindStmt(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+
+    switch(node.kind){
+        case ASTKind::CompoundStmt: {
+            scopeIn();
+            for(auto stmtIdx : node.body){
+                bindStmt(stmtIdx);
+            }
+            scopeOut();
+            break;
+        }
+        case ASTKind::VarDecl: {
+            Symbol sym;
+            sym.name = node.name;
+            sym.isMut = node.is_mut;
+
+            insertSymbol(sym);
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 IRFunc IRGenerator::genFunc(ASTIdx idx){
@@ -39,6 +80,10 @@ void IRGenerator::genStmt(ASTIdx idx){
             }
             break;
         }
+        case ASTKind::VarDecl: {
+            // Currently, do nothing for variable declarations
+            break;
+        }
         default:
             fprintf(stderr, "Unknown AST node kind: %d\n", (uint32_t)node.kind);
             exit(1);
@@ -51,7 +96,7 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
     switch(node.kind){
         case ASTKind::Num:
             {
-                return func.newVRegNum(node.data.val);
+                return func.newVRegNum(node.val);
             }
         default:
             break;

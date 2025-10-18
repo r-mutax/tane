@@ -15,6 +15,7 @@ int main(int argc, char** argv) {
 
     IRGenerator irgen(root, parser);
     IRModule& mod = irgen.run();
+    //irgen.printSymbols();
 
     X86Generator x86gen(mod);
     x86gen.setOutputFile("out.s");

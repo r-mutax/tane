@@ -8,12 +8,11 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <format>
 #include <string_view>
 #include <cstdint>
-
-typedef struct Operand Operand;
 
 typedef enum TokenKind {
     TK_NUM,
@@ -39,6 +38,8 @@ typedef enum TokenKind {
     TK_R_BRACE,     // }
     TK_SEMICOLON,   // ;
     TK_RETURN,      // "return"
+    TK_LET,         // "let"
+    TK_MUT,         // "mut"
     TK_IDENT,       // Identifier
     TK_EOF,
 } TokenKind;
@@ -70,10 +71,12 @@ public:
         Token& getTop() { return tokens.back(); }
     public:
         TokenIdx idx;
+        Token getToken(TokenIdx idx) { return tokens[idx]; }
         void reset() { idx = 0; }
         bool consume(TokenKind kind);
         void expect(TokenKind kind);
         int32_t expectNum();
+        TokenIdx expectIdent();
     };
     TokenStream& scan(char* p);
     Tokenizer();
@@ -112,6 +115,7 @@ enum class ASTKind {
     RShift,
     CompoundStmt,
     Return,
+    VarDecl,
 };
 
 struct ASTNode {
@@ -119,15 +123,15 @@ struct ASTNode {
     ASTIdx lhs;
     ASTIdx rhs;
 
+    // For Num
     int32_t val;
+
+    // For CompoundStmt or Function
     std::vector<ASTIdx> body;
     
-    union {
-        struct Function {
-            int32_t a;
-        } func;
-        int32_t val;
-    } data;
+    // For VarDecl
+    std::string name;
+    bool is_mut;
 };
 
 class Parser{
@@ -172,6 +176,15 @@ public:
     PhysReg assigned = PhysReg::None;
 };
 
+
+class Symbol{
+public:
+    std::string name;
+    TokenIdx tokenIdx;
+    bool isMut;
+};
+
+typedef int32_t SymbolIdx;
 
 enum class IRCmd {
     ADD,
@@ -338,16 +351,127 @@ public:
 class IRGenerator{
 private:
     IRFunc func;
+    void bindTU(ASTIdx idx);
+    void bindFunc(ASTIdx idx);
+    void bindStmt(ASTIdx idx);
     IRFunc genFunc(ASTIdx idx);
     void genStmt(ASTIdx idx);
     VRegID genExpr(ASTIdx idx);
+
+    typedef int32_t ScopeIdx;
+
+    class Scope{
+    public:
+        std::unordered_map<std::string, SymbolIdx> symbols;
+        ScopeIdx parent = -1;
+
+        Scope(ScopeIdx p) : parent(p) {}
+        void insertSymbol(const std::string& name, SymbolIdx idx){
+            symbols[name] = idx;
+        }
+        SymbolIdx findSymbol(const std::string& name){
+            auto it = symbols.find(name);
+            if(it != symbols.end()){
+                return it->second;
+            } else {
+                return -1;  // not found
+            }
+        }
+    };
+    std::vector<Scope> scopes;
+    std::vector<Symbol> symbolPool;
+    ScopeIdx curScope = -1;
+    ScopeIdx globalScope = -1;
+    ScopeIdx funcScope = -1;
+
 public:
     Parser& ps;
     ASTIdx root;
-    IRGenerator(ASTIdx idx, Parser& parser) : ps(parser), root(idx) {}
+    IRGenerator(ASTIdx idx, Parser& parser) : ps(parser), root(idx) {
+        scopes.push_back(Scope(-1));
+        curScope = scopes.size() - 1;
+        globalScope = scopes.size() - 1;
+    }
     IRModule module;
     IRModule& run();
     void printIR(const IRModule& irm);
+
+    SymbolIdx findSymbol(const std::string& name, ScopeIdx idx){
+        if(idx < 0 || (size_t)idx >= scopes.size()){
+            return -1; // not found
+        }
+        Scope& sc = scopes[idx];
+
+        SymbolIdx symIdx = sc.findSymbol(name);
+        if(symIdx != -1){
+            return symIdx;
+        }
+
+        if(sc.parent != -1){
+            return findSymbol(name, sc.parent);
+        }
+
+        return -1; // not found
+    }
+
+    void scopeIn(){
+        ScopeIdx parentIdx = curScope;
+        scopes.push_back(Scope(parentIdx));
+        curScope = scopes.size() - 1;
+
+        // when into function scope
+        if(parentIdx == globalScope){
+            funcScope = curScope;
+        }
+    };
+
+    void scopeOut(){
+        Scope& sc = scopes[curScope];
+        if(sc.parent == -1){
+            fprintf(stderr, "Cannot scope out from global scope.\n");
+            exit(1);
+        }
+
+        curScope = sc.parent;
+
+        // when out of function scope
+        if(curScope == globalScope){
+            funcScope = -1;
+        }
+    }
+
+    SymbolIdx insertSymbol(const Symbol& sym){
+        // check duplication
+        Scope& sc = scopes[curScope];
+        if(sc.symbols.find(sym.name) != sc.symbols.end()){
+            fprintf(stderr, "Symbol already exists in current scope: %s\n", sym.name.c_str());
+            exit(1);
+        }
+
+        // add to pool
+        symbolPool.push_back(sym);
+        SymbolIdx symIdx = symbolPool.size() - 1;
+
+        // add to scope
+        sc.insertSymbol(sym.name, symIdx);
+
+        return symIdx;
+    }
+
+    Symbol& getSymbol(SymbolIdx idx){
+        if(idx < 0 || (size_t)idx >= symbolPool.size()){
+            fprintf(stderr, "Invalid SymbolIdx: %d\n", idx);
+            exit(1);
+        }
+        return symbolPool[idx];
+    }
+
+    void printSymbols(){
+        for(size_t i = 0; i < symbolPool.size(); i++){
+            const auto& sym = symbolPool[i];
+            std::cout << "Symbol[" << i << "]: " << sym.name << ", mut=" << sym.isMut << "\n";
+        }
+    }
 };
 
 /// Output context interface
