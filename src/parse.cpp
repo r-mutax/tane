@@ -5,11 +5,26 @@ ASTIdx Parser::parseFile() {
     return stmt();
 }
 
+ASTIdx Parser::compoundStmt(){
+    ASTIdx n = newNode(ASTKind::CompoundStmt, 0, 0);
+    
+    std::vector<ASTIdx> body;   
+    while(!ts.consume(TK_R_BRACE)){
+        body.push_back(stmt());
+    }
+
+    ASTNode& node = getAST(n);
+    node.body = body;
+    return n;
+}
+
 ASTIdx Parser::stmt(){
     if(ts.consume(TK_RETURN)){
         ASTIdx n = newNode(ASTKind::Return, expr(), 0);
         ts.expect(TK_SEMICOLON);
         return n;
+    } else if(ts.consume(TK_L_BRACE)){
+        return compoundStmt();
     } else {
         // expr statement
         ASTIdx n = expr();

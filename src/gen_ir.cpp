@@ -28,6 +28,12 @@ void IRGenerator::genStmt(ASTIdx idx){
             func.instrPool.push_back(instr);
             break;
         }
+        case ASTKind::CompoundStmt: {
+            for(auto stmtIdx : node.body){
+                genStmt(stmtIdx);
+            }
+            break;
+        }
         default:
             fprintf(stderr, "Unknown AST node kind: %d\n", (uint32_t)node.kind);
             exit(1);

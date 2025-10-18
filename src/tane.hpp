@@ -35,6 +35,8 @@ typedef enum TokenKind {
     TK_OR_OR,       // ||
     TK_L_PAREN,     // (
     TK_R_PAREN,     // )
+    TK_L_BRACE,     // {
+    TK_R_BRACE,     // }
     TK_SEMICOLON,   // ;
     TK_RETURN,      // "return"
     TK_IDENT,       // Identifier
@@ -105,6 +107,7 @@ enum class ASTKind {
     LessEqual,
     LShift,
     RShift,
+    CompoundStmt,
     Return,
 };
 
@@ -113,6 +116,9 @@ struct ASTNode {
     ASTIdx lhs;
     ASTIdx rhs;
 
+    int32_t val;
+    std::vector<ASTIdx> body;
+    
     union {
         struct Function {
             int32_t a;
@@ -130,6 +136,7 @@ public:
 private:
     Tokenizer::TokenStream& ts;
     std::vector<ASTNode> nodes;
+    ASTIdx compoundStmt();
     ASTIdx stmt();
     ASTIdx expr();
     ASTIdx logical_or();

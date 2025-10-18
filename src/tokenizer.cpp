@@ -100,6 +100,12 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
             case ')':
                 ts.addToken(TK_R_PAREN, p++);
                 break;
+            case '{':
+                ts.addToken(TK_L_BRACE, p++);
+                break;
+            case '}':
+                ts.addToken(TK_R_BRACE, p++);
+                break;
             case ';':
                 ts.addToken(TK_SEMICOLON, p++);
                 break;
