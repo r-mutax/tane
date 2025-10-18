@@ -50,6 +50,8 @@ struct Token{
     int32_t len;
 };
 
+typedef uint32_t TokenIdx;
+
 class Tokenizer {
 public:
     class TokenStream {
@@ -67,8 +69,8 @@ public:
         }
         Token& getTop() { return tokens.back(); }
     public:
-        std::vector<Token>::iterator it;
-        void reset() { it = tokens.begin(); }
+        TokenIdx idx;
+        void reset() { idx = 0; }
         bool consume(TokenKind kind);
         void expect(TokenKind kind);
         int32_t expectNum();

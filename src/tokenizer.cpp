@@ -157,44 +157,44 @@ Tokenizer::Tokenizer(){
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){
-    if(it == tokens.end()){
+    if(idx == tokens.size()){
         return false;
     }
-    if(it->kind != kind){
+    if(tokens[idx].kind != kind){
         return false;
     }
 
-    it++;
+    idx++;
     return true;
 }
 
 void Tokenizer::TokenStream::expect(TokenKind kind){
-    if(it == tokens.end()){
+    if(idx == tokens.size()){
         fprintf(stderr, "Unexpected end of input\n");
         exit(1);
     }
 
-    if(it->kind != kind){
-        fprintf(stderr, "Unexpected token: %d\n", it->kind);
+    if(tokens[idx].kind != kind){
+        fprintf(stderr, "Unexpected token: %d\n", tokens[idx].kind);
         exit(1);
     }
 
-    it++;
+    idx++;
     return;
 }
 
 int32_t Tokenizer::TokenStream::expectNum(){
-    if(it == tokens.end()){
+    if(idx == tokens.size()){
         fprintf(stderr, "Unexpected end of input\n");
         exit(1);
     }
 
-    if(it->kind != TK_NUM){
-        fprintf(stderr, "Unexpected token: %d\n", it->kind);
+    if(tokens[idx].kind != TK_NUM){
+        fprintf(stderr, "Unexpected token: %d\n", tokens[idx].kind);
         exit(1);
     }
 
-    return it++->val;
+    return tokens[idx++].val;
 }
 
 // For debugging
