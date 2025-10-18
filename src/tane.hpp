@@ -21,7 +21,7 @@ typedef enum TokenKind {
     TK_MUL,         // *
     TK_DIV,         // /
     TK_MOD,         // %
-    TK_EQUAL,       // ==
+    TK_EQUAL_EQUAL, // ==
     TK_NOT_EQUAL,   // !=
     TK_LESS_THAN,   // <
     TK_LESS_EQUAL,  // <=

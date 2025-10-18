@@ -125,7 +125,7 @@ ASTIdx Parser::equality(){
     ASTIdx lhs = relational();
 
     while(true){
-        if(ts.consume(TK_EQUAL)){
+        if(ts.consume(TK_EQUAL_EQUAL)){
             lhs = newNode(ASTKind::Equal, lhs, relational());
             continue;
         }

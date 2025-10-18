@@ -30,7 +30,7 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                 break;
             case '=':
                 if(*(p + 1) == '='){
-                    ts.addToken(TK_EQUAL, p);
+                    ts.addToken(TK_EQUAL_EQUAL, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
