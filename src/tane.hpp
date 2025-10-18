@@ -90,6 +90,7 @@ void print_tokens(Token* token);
 
 typedef int32_t ASTIdx;
 enum class ASTKind {
+    TranslationUnit,
     Num,
     Add,
     Sub,
@@ -335,7 +336,7 @@ public:
 class IRGenerator{
 private:
     IRFunc func;
-    IRFunc genFunc(void);
+    IRFunc genFunc(ASTIdx idx);
     void genStmt(ASTIdx idx);
     VRegID genExpr(ASTIdx idx);
 public:

@@ -2,7 +2,16 @@
 
 ASTIdx Parser::parseFile() {
     ts.reset();
-    return stmt();
+
+    ASTIdx tu = newNode(ASTKind::TranslationUnit, 0, 0);
+
+    ts.expect(TK_L_BRACE);
+    ASTIdx cs = compoundStmt();
+
+    ASTNode& tuNode = getAST(tu);
+    tuNode.body.push_back(cs);
+
+    return tu;
 }
 
 ASTIdx Parser::compoundStmt(){

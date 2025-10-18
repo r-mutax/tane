@@ -3,16 +3,21 @@
 IRModule& IRGenerator::run(){
 
     module.funcPool.clear();
-    module.funcPool.push_back(genFunc());
+    
+    // generation of main function
+    ASTNode rootNode = ps.getAST(root);
+    for(auto stmtIdx : rootNode.body){
+        module.funcPool.push_back(genFunc(stmtIdx));
+    }
 
     return module;
 }
 
-IRFunc IRGenerator::genFunc(void){
+IRFunc IRGenerator::genFunc(ASTIdx idx){
     func.clean();
     func.fname = "main";
 
-    genStmt(root);
+    genStmt(idx);
 
     return func;
 }
