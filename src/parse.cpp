@@ -238,8 +238,8 @@ ASTIdx Parser::primary(){
         return n;
     }
 
-    TokenIdx idx = ts.consumeIdent();
-    if(idx != -1){
+    if(auto idxOpt = ts.consumeIdent()){
+        TokenIdx idx = *idxOpt;
         Token t = ts.getToken(idx);
         ASTIdx n = newNode(ASTKind::Variable, 0, 0);
         ASTNode& node = getAST(n);

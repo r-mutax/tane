@@ -13,6 +13,7 @@
 #include <format>
 #include <string_view>
 #include <cstdint>
+#include <optional>
 
 typedef int32_t SymbolIdx;
 
@@ -54,7 +55,7 @@ struct Token{
     int32_t len;
 };
 
-typedef int32_t TokenIdx;
+typedef uint32_t TokenIdx;
 
 class Tokenizer {
 public:
@@ -80,9 +81,11 @@ public:
         void expect(TokenKind kind);
         int32_t expectNum();
         TokenIdx expectIdent();
-        TokenIdx consumeIdent();
+        std::optional<TokenIdx> consumeIdent();
         bool peekKind(TokenKind kind, TokenIdx offset = 0){
-            return tokens[idx + offset].kind == kind;
+            size_t i = static_cast<size_t>(idx) + static_cast<size_t>(offset);
+            if(i >= tokens.size()) return false;
+            return tokens[i].kind == kind;
         }
     };
     TokenStream& scan(char* p);
