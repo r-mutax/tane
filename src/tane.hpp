@@ -182,6 +182,7 @@ public:
     std::string name;
     TokenIdx tokenIdx;
     bool isMut;
+    uint32_t stackOffset = 0;
 };
 
 typedef int32_t SymbolIdx;
@@ -303,6 +304,7 @@ class IRFunc{
 
     RegAlloc regAlloc{*this};
 public:
+    uint32_t localStackSize = 0;
     void clean(){
         instrPool.clear();
         fname = "";
@@ -363,15 +365,22 @@ public:
     }
 };
 
+struct FuncSem{
+    uint32_t localBytes{0};
+};
+
 class IRModule{
 public:
     std::vector<IRFunc> funcPool;
     std::vector<Scope> scopes;
     std::vector<Symbol> symbolPool;
 
+    std::unordered_map<ASTIdx, FuncSem> funcSem;
+
     ScopeIdx curScope = -1;
     ScopeIdx globalScope = -1;
     ScopeIdx funcScope = -1;
+    uint32_t currentStackSize = 0;
 
     SymbolIdx findSymbol(const std::string& name, ScopeIdx idx){
         if(idx < 0 || (size_t)idx >= scopes.size()){
@@ -431,6 +440,10 @@ public:
 
         // add to scope
         sc.insertSymbol(sym.name, symIdx);
+
+        Symbol& s = symbolPool[symIdx];
+        s.stackOffset = currentStackSize;
+        currentStackSize += 8; // assuming 8 bytes per variable
 
         return symIdx;
     }

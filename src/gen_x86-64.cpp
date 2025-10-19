@@ -2,6 +2,7 @@
 
 void X86Generator::emit(){
     out.print(".intel_syntax noprefix\n");
+    out.print(".text:\n");
 
     for(auto& func : irm.funcPool){
         emitFunc(func);
@@ -13,6 +14,9 @@ void X86Generator::emitFunc(IRFunc& func){
     
     out.print(".global {}\n", func.fname);
     out.print("{}:\n", func.fname);
+    out.print("  push rbp\n");
+    out.print("  mov rbp, rsp\n");
+    out.print("  sub rsp, {}\n", func.localStackSize);
     for(auto& instr : func.instrPool){
         func.regAlloc.expireAt(&instr - &func.instrPool[0]);
         switch(instr.cmd){
@@ -220,4 +224,9 @@ void X86Generator::emitFunc(IRFunc& func){
                 exit(1);
         }
     }
+
+    out.print("ret_{}:\n", func.fname);
+    out.print("  mov rsp, rbp\n");
+    out.print("  pop rbp\n");
+    out.print("  ret\n");
 }

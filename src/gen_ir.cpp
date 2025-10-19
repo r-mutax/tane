@@ -24,9 +24,12 @@ void IRGenerator::bindTU(ASTIdx idx){
 }
 
 void IRGenerator::bindFunc(ASTIdx idx){
+    module.currentStackSize = 0;
     module.scopeIn();
     bindStmt(idx);
     module.scopeOut();
+
+    module.funcSem[idx].localBytes = module.currentStackSize;
 }
 
 void IRGenerator::bindStmt(ASTIdx idx){
@@ -57,6 +60,9 @@ void IRGenerator::bindStmt(ASTIdx idx){
 IRFunc IRGenerator::genFunc(ASTIdx idx){
     func.clean();
     func.fname = "main";
+
+    FuncSem fs = module.funcSem[idx];
+    func.localStackSize = fs.localBytes;
 
     genStmt(idx);
 
