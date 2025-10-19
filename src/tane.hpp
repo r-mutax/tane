@@ -23,6 +23,7 @@ typedef enum TokenKind {
     TK_MUL,         // *
     TK_DIV,         // /
     TK_MOD,         // %
+    TK_EQUAL,       // =
     TK_EQUAL_EQUAL, // ==
     TK_NOT_EQUAL,   // !=
     TK_LESS_THAN,   // <
@@ -80,6 +81,9 @@ public:
         int32_t expectNum();
         TokenIdx expectIdent();
         TokenIdx consumeIdent();
+        bool peekKind(TokenKind kind, TokenIdx offset = 0){
+            return tokens[idx + offset].kind == kind;
+        }
     };
     TokenStream& scan(char* p);
     Tokenizer();
@@ -120,6 +124,7 @@ enum class ASTKind {
     Return,
     VarDecl,
     Variable,
+    Assign,
 };
 
 struct ASTNode {
@@ -214,6 +219,7 @@ enum class IRCmd {
     MOV_IMM,
     RET,
     LOAD,
+    SAVE,
     FRAME_ADDR,
 };
 
@@ -501,6 +507,7 @@ private:
     IRFunc genFunc(ASTIdx idx);
     void genStmt(ASTIdx idx);
     VRegID genExpr(ASTIdx idx);
+    VRegID genlvalue(ASTIdx idx);
 
 public:
     Parser& ps;

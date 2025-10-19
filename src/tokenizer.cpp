@@ -35,8 +35,8 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                     p += 2;
                     break;
                 } else {
-                    fprintf(stderr, "Invalid token: %s\n", p);
-                    exit(1);
+                    ts.addToken(TK_EQUAL, p++);
+                    break;
                 }
             case '!':
                 if(*(p + 1) == '='){

@@ -50,6 +50,22 @@ ASTIdx Parser::stmt(){
     } else if(ts.consume(TK_L_BRACE)){
         return compoundStmt();
     } else {
+        if(ts.peekKind(TK_IDENT) && ts.peekKind(TK_EQUAL, 1)){
+            // assignment statement
+            TokenIdx ident = ts.expectIdent();
+            ts.expect(TK_EQUAL);
+
+            ASTIdx n = newNode(ASTKind::Variable, 0, 0);
+            ASTNode& node = getAST(n);
+            Token t = ts.getToken(ident);
+            node.name = std::string(t.pos, t.len);
+
+            ASTIdx rhs = expr();
+            ASTIdx assignNode = newNode(ASTKind::Assign, n, rhs);
+            ts.expect(TK_SEMICOLON);
+            return assignNode;
+        }
+
         // expr statement
         ASTIdx n = expr();
         ts.expect(TK_SEMICOLON);

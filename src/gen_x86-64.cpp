@@ -226,6 +226,13 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov {}, [{}]\n", regName(rt), regName(rAddr));
                 break;
             }
+            case IRCmd::SAVE:
+            {
+                PhysReg rAddr = func.regAlloc.alloc(instr.s1);
+                PhysReg rVal = func.regAlloc.alloc(instr.s2);
+                out.print("  mov [{}], {}\n", regName(rAddr), regName(rVal));
+                break;
+            }
             case IRCmd::MOV_IMM:
             {
                 PhysReg r = func.regAlloc.alloc(instr.t);

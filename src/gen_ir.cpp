@@ -52,6 +52,11 @@ void IRGenerator::bindStmt(ASTIdx idx){
             module.insertSymbol(sym);
             break;
         }
+        case ASTKind::Assign: {
+            bindExpr(node.lhs);
+            bindExpr(node.rhs);
+            break;
+        }
         default:
             bindExpr(idx);
             break;
@@ -108,6 +113,18 @@ void IRGenerator::genStmt(ASTIdx idx){
         case ASTKind::VarDecl: {
             // Currently, do nothing for variable declarations
             break;
+        }
+        case ASTKind::Assign: {
+            VRegID rhsVid = genExpr(node.rhs);
+
+            VRegID lhsAddrVid = genlvalue(node.lhs);
+
+            IRInstr instr;
+            instr.cmd = IRCmd::SAVE;
+            instr.s1 = lhsAddrVid;
+            instr.s2 = rhsVid;
+            func.instrPool.push_back(instr);
+            break;        
         }
         default:
             fprintf(stderr, "Unknown AST node kind: %d\n", (uint32_t)node.kind);
@@ -241,3 +258,26 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
     fprintf(stderr, "Unknown AST node kind in expression: %d\n", (uint32_t)node.kind);
     exit(1);
 }
+
+VRegID IRGenerator::genlvalue(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+
+    switch(node.kind){
+        case ASTKind::Variable:
+        {
+            SymbolIdx symIdx = module.varSymMap[idx];
+            Symbol& sym = module.getSymbol(symIdx);
+            VRegID addrVid = func.newVReg();
+            IRInstr addrInstr;
+            addrInstr.cmd = IRCmd::FRAME_ADDR;
+            addrInstr.t = addrVid;
+            addrInstr.imm = sym.stackOffset;
+            func.instrPool.push_back(addrInstr);
+            return addrVid;
+        }
+        default:
+            fprintf(stderr, "Invalid lvalue AST node kind: %d\n", (uint32_t)node.kind);
+            exit(1);
+    }
+}
+
