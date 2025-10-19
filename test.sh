@@ -122,7 +122,7 @@ run_test "{return 1 && 1;}" "1"
 run_test "{return 1 && 0;}" "0"
 run_test "{return 0 && 1;}" "0"
 run_test "{return 0 && 0;}" "0"
-run_test "{let mut a; return 0;}" "0"
+run_test "{let mut a; return a;}" "0"
 
 #run_test "return 2+3*4;" "14"
 # More complex tests (commented out until parser supports them)

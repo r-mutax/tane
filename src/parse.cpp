@@ -222,6 +222,15 @@ ASTIdx Parser::primary(){
         return n;
     }
 
+    TokenIdx idx = ts.consumeIdent();
+    if(idx != -1){
+        Token t = ts.getToken(idx);
+        ASTIdx n = newNode(ASTKind::Variable, 0, 0);
+        ASTNode& node = getAST(n);
+        node.name = std::string(t.pos, t.len);
+        return n;
+    }
+
     int32_t n = ts.expectNum();
     return newNodeNum(n);
 }

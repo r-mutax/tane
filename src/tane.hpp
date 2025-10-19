@@ -14,6 +14,8 @@
 #include <string_view>
 #include <cstdint>
 
+typedef int32_t SymbolIdx;
+
 typedef enum TokenKind {
     TK_NUM,
     TK_ADD,         // +
@@ -51,7 +53,7 @@ struct Token{
     int32_t len;
 };
 
-typedef uint32_t TokenIdx;
+typedef int32_t TokenIdx;
 
 class Tokenizer {
 public:
@@ -77,6 +79,7 @@ public:
         void expect(TokenKind kind);
         int32_t expectNum();
         TokenIdx expectIdent();
+        TokenIdx consumeIdent();
     };
     TokenStream& scan(char* p);
     Tokenizer();
@@ -116,6 +119,7 @@ enum class ASTKind {
     CompoundStmt,
     Return,
     VarDecl,
+    Variable,
 };
 
 struct ASTNode {
@@ -132,6 +136,8 @@ struct ASTNode {
     // For VarDecl
     std::string name;
     bool is_mut;
+
+    SymbolIdx symIdx;
 };
 
 class Parser{
@@ -168,10 +174,11 @@ private:
 };
 
 enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX };
-
+enum class VRegKind : uint8_t { Temp, Imm, LVarAddr };
 typedef int32_t VRegID;
 class VReg{
 public:
+    VRegKind kind = VRegKind::Temp;
     int32_t val;
     PhysReg assigned = PhysReg::None;
 };
@@ -185,7 +192,6 @@ public:
     uint32_t stackOffset = 0;
 };
 
-typedef int32_t SymbolIdx;
 
 enum class IRCmd {
     ADD,
@@ -207,6 +213,7 @@ enum class IRCmd {
     MOV,
     MOV_IMM,
     RET,
+    LOAD,
 };
 
 
@@ -332,6 +339,19 @@ public:
         instrPool.push_back(isntr);
         return vid;
     }
+    VRegID newVRegVar(Symbol sym){
+        
+        // src 1 : VReg Addr
+        VRegID vid = newVReg();
+        
+        IRInstr instr;
+        instr.cmd = IRCmd::LOAD;
+        instr.t = vid;
+        instr.imm = sym.stackOffset;
+
+        instrPool.push_back(instr);
+        return vid;
+    }
     VReg& getVReg(VRegID id){
         if(id < 0){
             fprintf(stderr, "VReg is not used.\n");
@@ -376,6 +396,7 @@ public:
     std::vector<Symbol> symbolPool;
 
     std::unordered_map<ASTIdx, FuncSem> funcSem;
+    std::unordered_map<ASTIdx, SymbolIdx> varSymMap;
 
     ScopeIdx curScope = -1;
     ScopeIdx globalScope = -1;
@@ -442,8 +463,8 @@ public:
         sc.insertSymbol(sym.name, symIdx);
 
         Symbol& s = symbolPool[symIdx];
-        s.stackOffset = currentStackSize;
         currentStackSize += 8; // assuming 8 bytes per variable
+        s.stackOffset = currentStackSize;
 
         return symIdx;
     }
@@ -471,6 +492,7 @@ private:
     void bindTU(ASTIdx idx);
     void bindFunc(ASTIdx idx);
     void bindStmt(ASTIdx idx);
+    void bindExpr(ASTIdx idx);
     IRFunc genFunc(ASTIdx idx);
     void genStmt(ASTIdx idx);
     VRegID genExpr(ASTIdx idx);

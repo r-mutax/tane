@@ -213,6 +213,20 @@ TokenIdx Tokenizer::TokenStream::expectIdent(){
     return idx++;
 }
 
+TokenIdx Tokenizer::TokenStream::consumeIdent(){
+    if(idx == tokens.size()){
+        fprintf(stderr, "Unexpected end of input\n");
+        exit(1);
+    }
+
+    if(tokens[idx].kind != TK_IDENT){
+        return -1;
+    }
+
+    return idx++;
+}
+
+
 // For debugging
 
 /// Print the tokens in the linked list

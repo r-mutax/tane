@@ -53,6 +53,25 @@ void IRGenerator::bindStmt(ASTIdx idx){
             break;
         }
         default:
+            bindExpr(idx);
+            break;
+    }
+}
+
+void IRGenerator::bindExpr(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+
+    switch(node.kind){
+        case ASTKind::Variable: {
+            SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
+            if(symIdx == -1){
+                fprintf(stderr, "Undefined variable: %s\n", node.name.c_str());
+                exit(1);
+            }
+            module.varSymMap[idx] = symIdx;
+            break;
+        }
+        default:
             break;
     }
 }
@@ -104,6 +123,13 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
             {
                 return func.newVRegNum(node.val);
             }
+        case ASTKind::Variable:
+        {
+            SymbolIdx symIdx = module.varSymMap[idx];
+            Symbol& sym = module.getSymbol(symIdx);
+            VRegID vid = func.newVRegVar(sym);
+            return vid;
+        }
         default:
             break;
     }

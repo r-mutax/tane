@@ -2,7 +2,7 @@
 
 void X86Generator::emit(){
     out.print(".intel_syntax noprefix\n");
-    out.print(".text:\n");
+    out.print(".text\n");
 
     for(auto& func : irm.funcPool){
         emitFunc(func);
@@ -26,7 +26,7 @@ void X86Generator::emitFunc(IRFunc& func){
                 if(r != PhysReg::RAX){
                     out.print("  mov rax, {}\n", regName(r));
                 }
-                out.print("  ret\n");
+                out.print("  jmp ret_{}\n", func.fname);
                 break;
             }
             case IRCmd::ADD:
@@ -211,6 +211,13 @@ void X86Generator::emitFunc(IRFunc& func){
                 }
                 out.print("  mov cl, {}\n", regName8(r2));
                 out.print("  shr {}, cl\n", regName(rt));
+                break;
+            }
+            case IRCmd::LOAD:
+            {
+                //PhysReg rAddr = func.regAlloc.alloc(instr.s1);
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                out.print("  mov {}, [rbp - {}]\n", regName(rt), instr.imm);
                 break;
             }
             case IRCmd::MOV_IMM:
