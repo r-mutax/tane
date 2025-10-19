@@ -213,11 +213,17 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  shr {}, cl\n", regName(rt));
                 break;
             }
+            case IRCmd::FRAME_ADDR:
+            {
+                PhysReg rt = func.regAlloc.alloc(instr.t);
+                out.print("  lea {}, [rbp - {}]\n", regName(rt), instr.imm);
+                break;
+            }
             case IRCmd::LOAD:
             {
-                //PhysReg rAddr = func.regAlloc.alloc(instr.s1);
+                PhysReg rAddr = func.regAlloc.alloc(instr.s1);
                 PhysReg rt = func.regAlloc.alloc(instr.t);
-                out.print("  mov {}, [rbp - {}]\n", regName(rt), instr.imm);
+                out.print("  mov {}, [{}]\n", regName(rt), regName(rAddr));
                 break;
             }
             case IRCmd::MOV_IMM:

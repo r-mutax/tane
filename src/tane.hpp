@@ -214,6 +214,7 @@ enum class IRCmd {
     MOV_IMM,
     RET,
     LOAD,
+    FRAME_ADDR,
 };
 
 
@@ -341,14 +342,18 @@ public:
     }
     VRegID newVRegVar(Symbol sym){
         
-        // src 1 : VReg Addr
+        VRegID addrVid = newVReg();
+        IRInstr addrInstr;
+        addrInstr.cmd = IRCmd::FRAME_ADDR;
+        addrInstr.t = addrVid;
+        addrInstr.imm = sym.stackOffset;
+        instrPool.push_back(addrInstr);
+
         VRegID vid = newVReg();
-        
         IRInstr instr;
         instr.cmd = IRCmd::LOAD;
         instr.t = vid;
-        instr.imm = sym.stackOffset;
-
+        instr.s1 = addrVid;
         instrPool.push_back(instr);
         return vid;
     }
