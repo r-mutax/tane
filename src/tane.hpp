@@ -17,36 +17,36 @@
 
 typedef int32_t SymbolIdx;
 
-typedef enum TokenKind {
-    TK_NUM,
-    TK_ADD,         // +
-    TK_SUB,         // -
-    TK_MUL,         // *
-    TK_DIV,         // /
-    TK_MOD,         // %
-    TK_EQUAL,       // =
-    TK_EQUAL_EQUAL, // ==
-    TK_NOT_EQUAL,   // !=
-    TK_LESS_THAN,   // <
-    TK_LESS_EQUAL,  // <=
-    TK_LSHIFT,      // <<
-    TK_RSHIFT,      // >>
-    TK_AND,         // &
-    TK_HAT,         // ^
-    TK_OR,          // |
-    TK_AND_AND,     // &&
-    TK_OR_OR,       // ||
-    TK_L_PAREN,     // (
-    TK_R_PAREN,     // )
-    TK_L_BRACE,     // {
-    TK_R_BRACE,     // }
-    TK_SEMICOLON,   // ;
-    TK_RETURN,      // "return"
-    TK_LET,         // "let"
-    TK_MUT,         // "mut"
-    TK_IDENT,       // Identifier
-    TK_EOF,
-} TokenKind;
+enum class TokenKind {
+    Num,
+    Add,         // +
+    Sub,         // -
+    Mul,         // *
+    Div,         // /
+    Mod,         // %
+    Equal,       // =
+    EqualEqual,  // ==
+    NotEqual,    // !=
+    LessThan,    // <
+    LessEqual,   // <=
+    LShift,      // <<
+    RShift,      // >>
+    And,         // &
+    Hat,         // ^
+    Or,          // |
+    AndAnd,      // &&
+    OrOr,        // ||
+    LParen,      // (
+    RParen,      // )
+    LBrace,      // {
+    RBrace,      // }
+    Semicolon,   // ;
+    Return,      // "return"
+    Let,         // "let"
+    Mut,         // "mut"
+    Ident,       // Identifier
+    Eof,
+};
 
 struct Token{
     TokenKind kind;

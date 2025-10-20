@@ -10,37 +10,37 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
 
         switch(c){
             case 0:
-                ts.addToken(TK_EOF, p);
+                ts.addToken(TokenKind::Eof, p);
                 continue_flg = false;
                 break;            
             case '+':
-                ts.addToken(TK_ADD, p++);
+                ts.addToken(TokenKind::Add, p++);
                 break;
             case '-':
-                ts.addToken(TK_SUB, p++);
+                ts.addToken(TokenKind::Sub, p++);
                 break;
             case '*':
-                ts.addToken(TK_MUL, p++);
+                ts.addToken(TokenKind::Mul, p++);
                 break;
             case '/':
-                ts.addToken(TK_DIV, p++);
+                ts.addToken(TokenKind::Div, p++);
                 break;
             case '%':
-                ts.addToken(TK_MOD, p++);
+                ts.addToken(TokenKind::Mod, p++);
                 break;
             case '=':
                 if(*(p + 1) == '='){
-                    ts.addToken(TK_EQUAL_EQUAL, p);
+                    ts.addToken(TokenKind::EqualEqual, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
                 } else {
-                    ts.addToken(TK_EQUAL, p++);
+                    ts.addToken(TokenKind::Equal, p++);
                     break;
                 }
             case '!':
                 if(*(p + 1) == '='){
-                    ts.addToken(TK_NOT_EQUAL, p);
+                    ts.addToken(TokenKind::NotEqual, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
@@ -50,22 +50,22 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                 }
             case '<':
                 if(*(p + 1) == '='){
-                    ts.addToken(TK_LESS_EQUAL, p);
+                    ts.addToken(TokenKind::LessEqual, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
                 } else if(*(p + 1) == '<'){
-                    ts.addToken(TK_LSHIFT, p);
+                    ts.addToken(TokenKind::LShift, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
                 } else {
-                    ts.addToken(TK_LESS_THAN, p++);
+                    ts.addToken(TokenKind::LessThan, p++);
                     break;
                 }
             case '>':
                 if(*(p + 1) == '>'){
-                    ts.addToken(TK_RSHIFT, p);
+                    ts.addToken(TokenKind::RShift, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
@@ -73,48 +73,48 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                 break;
             case '|':
                 if(*(p + 1) == '|'){
-                    ts.addToken(TK_OR_OR, p);
+                    ts.addToken(TokenKind::OrOr, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
                 } else {
-                    ts.addToken(TK_OR, p++);
+                    ts.addToken(TokenKind::Or, p++);
                     break;
                 }
             case '^':
-                ts.addToken(TK_HAT, p++);
+                ts.addToken(TokenKind::Hat, p++);
                 break;
             case '&':
                 if(*(p + 1) == '&'){
-                    ts.addToken(TK_AND_AND, p);
+                    ts.addToken(TokenKind::AndAnd, p);
                     ts.getTop().len = 2;
                     p += 2;
                     break;
                 } else {
-                    ts.addToken(TK_AND, p++);
+                    ts.addToken(TokenKind::And, p++);
                     break;
                 }
             case '(':
-                ts.addToken(TK_L_PAREN, p++);
+                ts.addToken(TokenKind::LParen, p++);
                 break;
             case ')':
-                ts.addToken(TK_R_PAREN, p++);
+                ts.addToken(TokenKind::RParen, p++);
                 break;
             case '{':
-                ts.addToken(TK_L_BRACE, p++);
+                ts.addToken(TokenKind::LBrace, p++);
                 break;
             case '}':
-                ts.addToken(TK_R_BRACE, p++);
+                ts.addToken(TokenKind::RBrace, p++);
                 break;
             case ';':
-                ts.addToken(TK_SEMICOLON, p++);
+                ts.addToken(TokenKind::Semicolon, p++);
                 break;
             default:
                 if(isdigit(c)){
                     char* q = p;
                     int32_t val = strtol(p, &p, 10);
 
-                    ts.addToken(TK_NUM, q);
+                    ts.addToken(TokenKind::Num, q);
                     ts.getTop().val = val;
                 } else if(isspace(c)){
                     p++;
@@ -140,7 +140,7 @@ TokenKind Tokenizer::checkKeyword(char* start, uint32_t len){
     }
 
     // Not a keyword, so it must be an identifier
-    return TK_IDENT;
+    return TokenKind::Ident;
 }
 
 bool Tokenizer::is_ident1(char c){
@@ -153,9 +153,9 @@ bool Tokenizer::is_ident2(char c){
 
 Tokenizer::Tokenizer(){
     // Initialize keyword map
-    keyword_map["return"] = TK_RETURN;
-    keyword_map["let"] = TK_LET;
-    keyword_map["mut"] = TK_MUT;
+    keyword_map["return"] = TokenKind::Return;
+    keyword_map["let"] = TokenKind::Let;
+    keyword_map["mut"] = TokenKind::Mut;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){
@@ -191,8 +191,8 @@ int32_t Tokenizer::TokenStream::expectNum(){
         exit(1);
     }
 
-    if(tokens[idx].kind != TK_NUM){
-        fprintf(stderr, "Unexpected token: %d\n", tokens[idx].kind);
+    if(tokens[idx].kind != TokenKind::Num){
+        fprintf(stderr, "Unexpected token: %d\n", static_cast<int>(tokens[idx].kind));
         exit(1);
     }
 
@@ -205,8 +205,8 @@ TokenIdx Tokenizer::TokenStream::expectIdent(){
         exit(1);
     }
 
-    if(tokens[idx].kind != TK_IDENT){
-        fprintf(stderr, "Unexpected token: %d\n", tokens[idx].kind);
+    if(tokens[idx].kind != TokenKind::Ident){
+        fprintf(stderr, "Unexpected token: %d\n", static_cast<int>(tokens[idx].kind));
         exit(1);
     }
 
@@ -217,7 +217,7 @@ std::optional<TokenIdx> Tokenizer::TokenStream::consumeIdent(){
     if(idx >= tokens.size()){
         return std::nullopt;
     }
-    if(tokens[idx].kind != TK_IDENT){
+    if(tokens[idx].kind != TokenKind::Ident){
         return std::nullopt;
     }
     return idx++;
@@ -237,41 +237,41 @@ void Tokenizer::printTokens(){
 /// Print a single TokenKind
 void Tokenizer::printTokenKind(TokenKind kind){
     switch(kind){
-        case TK_NUM:
-            printf("TK_NUM");
+        case TokenKind::Num:
+            printf("Num");
             break;
-        case TK_ADD:
-            printf("TK_ADD");
+        case TokenKind::Add:
+            printf("Add");
             break;
-        case TK_SUB:
-            printf("TK_SUB");
+        case TokenKind::Sub:
+            printf("Sub");
             break;
-        case TK_MUL:
-            printf("TK_MUL");
+        case TokenKind::Mul:
+            printf("Mul");
             break;
-        case TK_DIV:
-            printf("TK_DIV");
+        case TokenKind::Div:
+            printf("Div");
             break;
-        case TK_MOD:
-            printf("TK_MOD");
+        case TokenKind::Mod:
+            printf("Mod");
             break;
-        case TK_L_PAREN:
-            printf("TK_L_PAREN");
+        case TokenKind::LParen:
+            printf("LParen");
             break;
-        case TK_R_PAREN:
-            printf("TK_R_PAREN");
+        case TokenKind::RParen:
+            printf("RParen");
             break;
-        case TK_RETURN:
-            printf("TK_RETURN");
+        case TokenKind::Return:
+            printf("Return");
             break;
-        case TK_SEMICOLON:
-            printf("TK_SEMICOLON");
+        case TokenKind::Semicolon:
+            printf("Semicolon");
             break;
-        case TK_EOF:
-            printf("TK_EOF");
+        case TokenKind::Eof:
+            printf("Eof");
             break;
         default:
-            printf("Unknown TokenKind: %d", kind);
+            printf("Unknown TokenKind: %d", static_cast<int>(kind));
             break;
     }
 }

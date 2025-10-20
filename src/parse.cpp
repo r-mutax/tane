@@ -5,7 +5,7 @@ ASTIdx Parser::parseFile() {
 
     ASTIdx tu = newNode(ASTKind::TranslationUnit, 0, 0);
 
-    ts.expect(TK_L_BRACE);
+    ts.expect(TokenKind::LBrace);
     ASTIdx cs = compoundStmt();
 
     ASTNode& tuNode = getAST(tu);
@@ -18,7 +18,7 @@ ASTIdx Parser::compoundStmt(){
     ASTIdx n = newNode(ASTKind::CompoundStmt, 0, 0);
     
     std::vector<ASTIdx> body;   
-    while(!ts.consume(TK_R_BRACE)){
+    while(!ts.consume(TokenKind::RBrace)){
         body.push_back(stmt());
     }
 
@@ -28,13 +28,13 @@ ASTIdx Parser::compoundStmt(){
 }
 
 ASTIdx Parser::stmt(){
-    if(ts.consume(TK_RETURN)){
+    if(ts.consume(TokenKind::Return)){
         ASTIdx n = newNode(ASTKind::Return, expr(), 0);
-        ts.expect(TK_SEMICOLON);
+        ts.expect(TokenKind::Semicolon);
         return n;
-    } else if(ts.consume(TK_LET)){
+    } else if(ts.consume(TokenKind::Let)){
         bool is_mut = false;
-        if(ts.consume(TK_MUT)){
+        if(ts.consume(TokenKind::Mut)){
             is_mut = true;
         }
         TokenIdx ident = ts.expectIdent();
@@ -45,15 +45,15 @@ ASTIdx Parser::stmt(){
         Token t = ts.getToken(ident);
         node.name = std::string(t.pos, t.len);
         node.is_mut = is_mut;
-        ts.expect(TK_SEMICOLON);
+        ts.expect(TokenKind::Semicolon);
         return n;
-    } else if(ts.consume(TK_L_BRACE)){
+    } else if(ts.consume(TokenKind::LBrace)){
         return compoundStmt();
     } else {
-        if(ts.peekKind(TK_IDENT) && ts.peekKind(TK_EQUAL, 1)){
+        if(ts.peekKind(TokenKind::Ident) && ts.peekKind(TokenKind::Equal, 1)){
             // assignment statement
             TokenIdx ident = ts.expectIdent();
-            ts.expect(TK_EQUAL);
+            ts.expect(TokenKind::Equal);
 
             ASTIdx n = newNode(ASTKind::Variable, 0, 0);
             ASTNode& node = getAST(n);
@@ -62,13 +62,13 @@ ASTIdx Parser::stmt(){
 
             ASTIdx rhs = expr();
             ASTIdx assignNode = newNode(ASTKind::Assign, n, rhs);
-            ts.expect(TK_SEMICOLON);
+            ts.expect(TokenKind::Semicolon);
             return assignNode;
         }
 
         // expr statement
         ASTIdx n = expr();
-        ts.expect(TK_SEMICOLON);
+        ts.expect(TokenKind::Semicolon);
         return n;
     }
 }
@@ -81,7 +81,7 @@ ASTIdx Parser::logical_or(){
     ASTIdx lhs = logical_and();
 
     while(true){
-        if(ts.consume(TK_OR_OR)){
+        if(ts.consume(TokenKind::OrOr)){
             lhs = newNode(ASTKind::LogicalOr, lhs, logical_and());
             continue;
         }
@@ -93,7 +93,7 @@ ASTIdx Parser::logical_and(){
     ASTIdx lhs = bitwise_or();
 
     while(true){
-        if(ts.consume(TK_AND_AND)){
+        if(ts.consume(TokenKind::AndAnd)){
             lhs = newNode(ASTKind::LogicalAnd, lhs, bitwise_or());
             continue;
         }
@@ -105,7 +105,7 @@ ASTIdx Parser::bitwise_or(){
     ASTIdx lhs = bitwise_xor();
 
     while(true){
-        if(ts.consume(TK_OR)){
+        if(ts.consume(TokenKind::Or)){
             lhs = newNode(ASTKind::BitOr, lhs, bitwise_xor());
             continue;
         }
@@ -117,7 +117,7 @@ ASTIdx Parser::bitwise_xor(){
     ASTIdx lhs = bitwise_and();
 
     while(true){
-        if(ts.consume(TK_HAT)){
+        if(ts.consume(TokenKind::Hat)){
             lhs = newNode(ASTKind::BitXor, lhs, bitwise_and());
             continue;
         }
@@ -129,7 +129,7 @@ ASTIdx Parser::bitwise_and(){
     ASTIdx lhs = equality();
 
     while(true){
-        if(ts.consume(TK_AND)){
+        if(ts.consume(TokenKind::And)){
             lhs = newNode(ASTKind::BitAnd, lhs, equality());
             continue;
         }
@@ -141,11 +141,11 @@ ASTIdx Parser::equality(){
     ASTIdx lhs = relational();
 
     while(true){
-        if(ts.consume(TK_EQUAL_EQUAL)){
+        if(ts.consume(TokenKind::EqualEqual)){
             lhs = newNode(ASTKind::Equal, lhs, relational());
             continue;
         }
-        if(ts.consume(TK_NOT_EQUAL)){
+        if(ts.consume(TokenKind::NotEqual)){
             lhs = newNode(ASTKind::NotEqual, lhs, relational());
             continue;
         }
@@ -157,11 +157,11 @@ ASTIdx Parser::relational(){
     ASTIdx lhs = shift();
 
     while(true){
-        if(ts.consume(TK_LESS_THAN)){
+        if(ts.consume(TokenKind::LessThan)){
             lhs = newNode(ASTKind::LessThan, lhs, shift());
             continue;
         }
-        if(ts.consume(TK_LESS_EQUAL)){
+        if(ts.consume(TokenKind::LessEqual)){
             lhs = newNode(ASTKind::LessEqual, lhs, shift());
             continue;
         }
@@ -173,11 +173,11 @@ ASTIdx Parser::shift(){
     ASTIdx lhs = add();
 
     while(true){
-        if(ts.consume(TK_LSHIFT)){
+        if(ts.consume(TokenKind::LShift)){
             lhs = newNode(ASTKind::LShift, lhs, add());
             continue;
         }
-        if(ts.consume(TK_RSHIFT)){
+        if(ts.consume(TokenKind::RShift)){
             lhs = newNode(ASTKind::RShift, lhs, add());
             continue;
         }
@@ -189,11 +189,11 @@ ASTIdx Parser::add(){
     ASTIdx lhs = mul();
 
     while(true){
-        if(ts.consume(TK_ADD)){
+        if(ts.consume(TokenKind::Add)){
             lhs = newNode(ASTKind::Add, lhs, mul());
             continue;
         }
-        if(ts.consume(TK_SUB)){
+        if(ts.consume(TokenKind::Sub)){
             lhs = newNode(ASTKind::Sub, lhs, mul());
             continue;
         }
@@ -205,15 +205,15 @@ ASTIdx Parser::mul(){
     ASTIdx lhs = unary();
 
     while(true){
-        if(ts.consume(TK_MUL)){
+        if(ts.consume(TokenKind::Mul)){
             lhs = newNode(ASTKind::Mul, lhs, unary());
             continue;
         }
-        if(ts.consume(TK_DIV)){
+        if(ts.consume(TokenKind::Div)){
             lhs = newNode(ASTKind::Div, lhs, unary());
             continue;
         }
-        if(ts.consume(TK_MOD)){
+        if(ts.consume(TokenKind::Mod)){
             lhs = newNode(ASTKind::Mod, lhs, unary());
             continue;
         }
@@ -222,19 +222,19 @@ ASTIdx Parser::mul(){
 }
 
 ASTIdx Parser::unary(){
-    if(ts.consume(TK_ADD)){
+    if(ts.consume(TokenKind::Add)){
         return primary();
     }
-    if(ts.consume(TK_SUB)){
+    if(ts.consume(TokenKind::Sub)){
         return newNode(ASTKind::Sub, newNodeNum(0), primary());
     }
     return primary();
 }
 
 ASTIdx Parser::primary(){
-    if(ts.consume(TK_L_PAREN)){
+    if(ts.consume(TokenKind::LParen)){
         ASTIdx n = expr();
-        ts.expect(TK_R_PAREN);
+        ts.expect(TokenKind::RParen);
         return n;
     }
 
