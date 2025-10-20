@@ -124,6 +124,8 @@ run_test "{return 0 && 1;}" "0"
 run_test "{return 0 && 0;}" "0"
 run_test "{let mut a; a = 0; return a;}" "0"
 run_test "{let mut b; b = 1; return b;}" "1"
+run_test "{let mut c; c = 2 + 3 * 4; if(c % 2 == 0){ c = 9; } else {c = 34;} return c;}" "9"
+
 
 #run_test "return 2+3*4;" "14"
 # More complex tests (commented out until parser supports them)

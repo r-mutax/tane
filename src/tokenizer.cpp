@@ -156,6 +156,8 @@ Tokenizer::Tokenizer(){
     keyword_map["return"] = TokenKind::Return;
     keyword_map["let"] = TokenKind::Let;
     keyword_map["mut"] = TokenKind::Mut;
+    keyword_map["if"] = TokenKind::If;
+    keyword_map["else"] = TokenKind::Else;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){
@@ -177,7 +179,7 @@ void Tokenizer::TokenStream::expect(TokenKind kind){
     }
 
     if(tokens[idx].kind != kind){
-        fprintf(stderr, "Unexpected token: %d\n", tokens[idx].kind);
+        fprintf(stderr, "Unexpected token: %ud\n", (unsigned int)tokens[idx].kind);
         exit(1);
     }
 

@@ -32,6 +32,33 @@ ASTIdx Parser::stmt(){
         ASTIdx n = newNode(ASTKind::Return, expr(), 0);
         ts.expect(TokenKind::Semicolon);
         return n;
+    } else if(ts.consume(TokenKind::If)){
+        ts.expect(TokenKind::LParen);
+        ASTIdx cond = expr();
+        ts.expect(TokenKind::RParen);
+        
+        ts.expect(TokenKind::LBrace);
+        ASTIdx thenBr = compoundStmt();
+
+        ASTIdx elseBr = -1;
+        if(ts.peekKind(TokenKind::Else)){
+            ts.consume(TokenKind::Else);
+            if(ts.peekKind(TokenKind::If)){
+                // else if
+                elseBr = stmt();
+            } else {
+                // else
+                ts.expect(TokenKind::LBrace);
+                elseBr = compoundStmt();
+            }
+        }
+
+        ASTIdx n = newNode(ASTKind::If, cond, thenBr);
+        ASTNode& node = getAST(n);
+        node.cond = cond;
+        node.thenBr = thenBr;
+        node.elseBr = elseBr;
+        return n;
     } else if(ts.consume(TokenKind::Let)){
         bool is_mut = false;
         if(ts.consume(TokenKind::Mut)){

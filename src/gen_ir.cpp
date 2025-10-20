@@ -110,6 +110,49 @@ void IRGenerator::genStmt(ASTIdx idx){
             }
             break;
         }
+        case ASTKind::If: {
+            VRegID condVid = genExpr(node.cond);
+
+            // jump to else label if cond is zero
+            IRInstr jz;
+            jz.cmd = IRCmd::JZ;
+            jz.s1 = condVid;
+            jz.imm = func.newLabel();
+            func.instrPool.push_back(jz);
+
+            // then branch
+            genStmt(node.thenBr);
+
+            // if there is an else branch, jump to end label
+            if(node.elseBr != -1){
+                IRInstr jmpEnd;
+                jmpEnd.cmd = IRCmd::JMP;
+                jmpEnd.imm = func.newLabel();
+                func.instrPool.push_back(jmpEnd);
+
+                // else label
+                IRInstr elseLabel;
+                elseLabel.cmd = IRCmd::LLABEL;
+                elseLabel.imm = jz.imm;
+                func.instrPool.push_back(elseLabel);
+
+                // else branch
+                genStmt(node.elseBr);
+
+                // end label
+                IRInstr endLabel;
+                endLabel.cmd = IRCmd::LLABEL;
+                endLabel.imm = jmpEnd.imm;
+                func.instrPool.push_back(endLabel);
+            } else {
+                // else label
+                IRInstr elseLabel;
+                elseLabel.cmd = IRCmd::LLABEL;
+                elseLabel.imm = jz.imm;
+                func.instrPool.push_back(elseLabel);
+            }
+            break;            
+        }
         case ASTKind::VarDecl: {
             // Currently, do nothing for variable declarations
             break;

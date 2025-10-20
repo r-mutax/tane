@@ -44,6 +44,8 @@ enum class TokenKind {
     Return,      // "return"
     Let,         // "let"
     Mut,         // "mut"
+    If,          // "if"
+    Else,        // "else"
     Ident,       // Identifier
     Eof,
 };
@@ -128,6 +130,7 @@ enum class ASTKind {
     VarDecl,
     Variable,
     Assign,
+    If,
 };
 
 struct ASTNode {
@@ -144,6 +147,11 @@ struct ASTNode {
     // For VarDecl
     std::string name;
     bool is_mut;
+
+    // For if statement
+    ASTIdx cond;
+    ASTIdx thenBr;
+    ASTIdx elseBr;
 
     SymbolIdx symIdx;
 };
@@ -224,8 +232,19 @@ enum class IRCmd {
     LOAD,
     SAVE,
     FRAME_ADDR,
+    LLABEL,
+    JZ,             // jmp if zero
+    JMP,            // unconditional jmp
 };
-
+/*
+    cond
+    jz cond .Llse
+    then
+    jmp .Lend
+    .Lelse
+    else
+    .Lend
+*/
 
 class IRInstr{
 public:
@@ -269,6 +288,7 @@ class IRFunc{
     friend class RegAlloc;
     std::vector<IRInstr> instrPool;
     std::vector<VReg> vregs;
+    int32_t labelCounter = 0;
 
     class RegAlloc{
         std::vector<PhysReg> freeRegs;
@@ -325,6 +345,7 @@ public:
     void clean(){
         instrPool.clear();
         fname = "";
+        labelCounter = 0;
     }
     std::string fname;
     void newIRInstr(const IRCmd cmd, VRegID s1 = -1, VRegID s2 = -1, VRegID t = -1) {
@@ -334,6 +355,11 @@ public:
         instr.s2 = s2;
         instr.t = t;
         instrPool.push_back(instr);
+    }
+
+
+    int32_t newLabel(){
+        return labelCounter++;
     }
     VRegID newVReg(){
         VReg vr;
