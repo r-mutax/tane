@@ -296,7 +296,7 @@ class IRFunc{
         void expireAt(size_t pos){
             for(size_t vid = 0; vid < f.vregs.size(); vid++){
                 auto& vr = f.vregs[vid];
-                if(vr.assigned != PhysReg::None     // assigned to physical register_
+                if(vr.assigned != PhysReg::None     // assigned to physical register
                     && lastUse[vid] >= 0            // used at least once
                     && lastUse[vid] < (VRegID)pos)          // last used before current position  
                 {
