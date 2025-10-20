@@ -59,6 +59,19 @@ ASTIdx Parser::stmt(){
         node.thenBr = thenBr;
         node.elseBr = elseBr;
         return n;
+    } else if(ts.consume(TokenKind::While)){
+        ts.expect(TokenKind::LParen);
+        ASTIdx cond = expr();
+        ts.expect(TokenKind::RParen);
+
+        ts.expect(TokenKind::LBrace);
+        ASTIdx body = compoundStmt();
+
+        ASTIdx n = newNode(ASTKind::While, cond, body);
+        ASTNode& node = getAST(n);
+        node.cond = cond;
+        node.body.push_back(body);
+        return n;
     } else if(ts.consume(TokenKind::Let)){
         bool is_mut = false;
         if(ts.consume(TokenKind::Mut)){

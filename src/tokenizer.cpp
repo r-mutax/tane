@@ -158,6 +158,7 @@ Tokenizer::Tokenizer(){
     keyword_map["mut"] = TokenKind::Mut;
     keyword_map["if"] = TokenKind::If;
     keyword_map["else"] = TokenKind::Else;
+    keyword_map["while"] = TokenKind::While;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){

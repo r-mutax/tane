@@ -46,6 +46,7 @@ enum class TokenKind {
     Mut,         // "mut"
     If,          // "if"
     Else,        // "else"
+    While,       // "while"
     Ident,       // Identifier
     Eof,
 };
@@ -131,6 +132,7 @@ enum class ASTKind {
     Variable,
     Assign,
     If,
+    While,
 };
 
 struct ASTNode {

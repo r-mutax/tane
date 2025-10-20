@@ -153,6 +153,42 @@ void IRGenerator::genStmt(ASTIdx idx){
             }
             break;            
         }
+        case ASTKind::While: {
+            int32_t while_slabel = func.newLabel();
+            int32_t while_elabel = func.newLabel();
+
+            // start label
+            IRInstr startLabel;
+            startLabel.cmd = IRCmd::LLABEL;
+            startLabel.imm = while_slabel;
+            func.instrPool.push_back(startLabel);
+
+            // condition
+            VRegID condVid = genExpr(node.cond);
+
+            // jump to end label if cond is zero
+            IRInstr jz;
+            jz.cmd = IRCmd::JZ;
+            jz.s1 = condVid;
+            jz.imm = while_elabel;
+            func.instrPool.push_back(jz);
+
+            // currently body must have only one compound statement
+            genStmt(node.body[0]);
+
+            // jump back to start
+            IRInstr jmpStart;
+            jmpStart.cmd = IRCmd::JMP;
+            jmpStart.imm = while_slabel;
+            func.instrPool.push_back(jmpStart);
+
+            // end label
+            IRInstr endLabel;
+            endLabel.cmd = IRCmd::LLABEL;
+            endLabel.imm = while_elabel;
+            func.instrPool.push_back(endLabel);
+            break;            
+        }
         case ASTKind::VarDecl: {
             // Currently, do nothing for variable declarations
             break;
