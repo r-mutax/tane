@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# build output
+/build/
+/build/*
+out.s
