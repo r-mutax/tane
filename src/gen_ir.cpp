@@ -48,6 +48,21 @@ void IRGenerator::bindStmt(ASTIdx idx){
             module.scopeOut();
             break;
         }
+        case ASTKind::If: {
+            bindExpr(node.cond);
+            bindStmt(node.thenBr);
+            if(node.elseBr != -1){
+                bindStmt(node.elseBr);
+            }
+            break;            
+        }
+        case ASTKind::While: {
+            bindExpr(node.cond);
+
+            // currently body must have only one compound statement
+            bindStmt(node.body[0]);
+            break;            
+        }
         case ASTKind::VarDecl: {
             Symbol sym;
             sym.name = node.name;
@@ -71,6 +86,9 @@ void IRGenerator::bindExpr(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
 
     switch(node.kind){
+        case ASTKind::Num:
+            // nothing to do
+            break;
         case ASTKind::Variable: {
             SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
             if(symIdx == -1){
@@ -78,6 +96,18 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 exit(1);
             }
             module.varSymMap[idx] = symIdx;
+            break;
+        }
+        case ASTKind::Switch: {
+            bindExpr(node.cond);
+            for(auto caseIdx : node.body){
+                ASTNode caseNode = ps.getAST(caseIdx);
+                bindExpr(caseNode.lhs);
+
+                module.scopeIn();
+                bindExpr(caseNode.rhs);
+                module.scopeOut();
+            }
             break;
         }
         default:
