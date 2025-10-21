@@ -41,12 +41,15 @@ enum class TokenKind {
     LBrace,      // {
     RBrace,      // }
     Semicolon,   // ;
+    Comma,       // ,
+    EqualArrow,  // =>
     Return,      // "return"
     Let,         // "let"
     Mut,         // "mut"
     If,          // "if"
     Else,        // "else"
     While,       // "while"
+    Switch,      // "switch"
     Ident,       // Identifier
     Eof,
 };
@@ -133,6 +136,8 @@ enum class ASTKind {
     Assign,
     If,
     While,
+    Switch,
+    Case,
 };
 
 struct ASTNode {
@@ -236,6 +241,7 @@ enum class IRCmd {
     FRAME_ADDR,
     LLABEL,
     JZ,             // jmp if zero
+    JNZ,
     JMP,            // unconditional jmp
 };
 /*

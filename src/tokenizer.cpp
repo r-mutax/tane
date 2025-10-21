@@ -34,6 +34,11 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
                     ts.getTop().len = 2;
                     p += 2;
                     break;
+                } else if(*(p + 1) == '>'){
+                    ts.addToken(TokenKind::EqualArrow, p);
+                    ts.getTop().len = 2;
+                    p += 2;
+                    break;
                 } else {
                     ts.addToken(TokenKind::Equal, p++);
                     break;
@@ -109,6 +114,9 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
             case ';':
                 ts.addToken(TokenKind::Semicolon, p++);
                 break;
+            case ',':
+                ts.addToken(TokenKind::Comma, p++);
+                break;
             default:
                 if(isdigit(c)){
                     char* q = p;
@@ -159,6 +167,7 @@ Tokenizer::Tokenizer(){
     keyword_map["if"] = TokenKind::If;
     keyword_map["else"] = TokenKind::Else;
     keyword_map["while"] = TokenKind::While;
+    keyword_map["switch"] = TokenKind::Switch;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){

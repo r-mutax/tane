@@ -283,6 +283,28 @@ ASTIdx Parser::primary(){
         return n;
     }
 
+    if(ts.consume(TokenKind::Switch)){
+        ASTIdx cond = expr();
+
+        ASTIdx n = newNode(ASTKind::Switch, 0, 0);
+        getAST(n).cond = cond;
+        ts.expect(TokenKind::LBrace);
+        while(!ts.consume(TokenKind::RBrace)){
+            ASTIdx caseExpr = expr();
+            ts.expect(TokenKind::EqualArrow);
+            ASTIdx caseBody = expr();
+
+            ASTIdx caseNode = newNode(ASTKind::Case, caseExpr, caseBody);
+            getAST(n).body.push_back(caseNode);
+            if(ts.peekKind(TokenKind::RBrace, 1) == false){
+                ts.expect(TokenKind::Comma);
+            } else {
+                ts.consume(TokenKind::Comma);
+            }
+        }
+        return n;
+    }
+
     int32_t n = ts.expectNum();
     return newNodeNum(n);
 }
