@@ -33,9 +33,7 @@ ASTIdx Parser::stmt(){
         ts.expect(TokenKind::Semicolon);
         return n;
     } else if(ts.consume(TokenKind::If)){
-        ts.expect(TokenKind::LParen);
         ASTIdx cond = expr();
-        ts.expect(TokenKind::RParen);
         
         ts.expect(TokenKind::LBrace);
         ASTIdx thenBr = compoundStmt();
@@ -60,9 +58,7 @@ ASTIdx Parser::stmt(){
         node.elseBr = elseBr;
         return n;
     } else if(ts.consume(TokenKind::While)){
-        ts.expect(TokenKind::LParen);
         ASTIdx cond = expr();
-        ts.expect(TokenKind::RParen);
 
         ts.expect(TokenKind::LBrace);
         ASTIdx body = compoundStmt();
