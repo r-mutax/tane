@@ -36,6 +36,10 @@ void IRGenerator::bindStmt(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
 
     switch(node.kind){
+        case ASTKind::Return: {
+            bindExpr(node.lhs);
+            break;
+        }
         case ASTKind::CompoundStmt: {
             module.scopeIn();
             for(auto stmtIdx : node.body){
@@ -43,6 +47,21 @@ void IRGenerator::bindStmt(ASTIdx idx){
             }
             module.scopeOut();
             break;
+        }
+        case ASTKind::If: {
+            bindExpr(node.cond);
+            bindStmt(node.thenBr);
+            if(node.elseBr != -1){
+                bindStmt(node.elseBr);
+            }
+            break;            
+        }
+        case ASTKind::While: {
+            bindExpr(node.cond);
+
+            // currently body must have only one compound statement
+            bindStmt(node.body[0]);
+            break;            
         }
         case ASTKind::VarDecl: {
             Symbol sym;
@@ -67,6 +86,9 @@ void IRGenerator::bindExpr(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
 
     switch(node.kind){
+        case ASTKind::Num:
+            // nothing to do
+            break;
         case ASTKind::Variable: {
             SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
             if(symIdx == -1){
@@ -74,6 +96,18 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 exit(1);
             }
             module.varSymMap[idx] = symIdx;
+            break;
+        }
+        case ASTKind::Switch: {
+            bindExpr(node.cond);
+            for(auto caseIdx : node.body){
+                ASTNode caseNode = ps.getAST(caseIdx);
+                bindExpr(caseNode.lhs);
+
+                module.scopeIn();
+                bindExpr(caseNode.rhs);
+                module.scopeOut();
+            }
             break;
         }
         default:
@@ -109,6 +143,85 @@ void IRGenerator::genStmt(ASTIdx idx){
                 genStmt(stmtIdx);
             }
             break;
+        }
+        case ASTKind::If: {
+            VRegID condVid = genExpr(node.cond);
+
+            // jump to else label if cond is zero
+            IRInstr jz;
+            jz.cmd = IRCmd::JZ;
+            jz.s1 = condVid;
+            jz.imm = func.newLabel();
+            func.instrPool.push_back(jz);
+
+            // then branch
+            genStmt(node.thenBr);
+
+            // if there is an else branch, jump to end label
+            if(node.elseBr != -1){
+                IRInstr jmpEnd;
+                jmpEnd.cmd = IRCmd::JMP;
+                jmpEnd.imm = func.newLabel();
+                func.instrPool.push_back(jmpEnd);
+
+                // else label
+                IRInstr elseLabel;
+                elseLabel.cmd = IRCmd::LLABEL;
+                elseLabel.imm = jz.imm;
+                func.instrPool.push_back(elseLabel);
+
+                // else branch
+                genStmt(node.elseBr);
+
+                // end label
+                IRInstr endLabel;
+                endLabel.cmd = IRCmd::LLABEL;
+                endLabel.imm = jmpEnd.imm;
+                func.instrPool.push_back(endLabel);
+            } else {
+                // else label
+                IRInstr elseLabel;
+                elseLabel.cmd = IRCmd::LLABEL;
+                elseLabel.imm = jz.imm;
+                func.instrPool.push_back(elseLabel);
+            }
+            break;            
+        }
+        case ASTKind::While: {
+            int32_t while_slabel = func.newLabel();
+            int32_t while_elabel = func.newLabel();
+
+            // start label
+            IRInstr startLabel;
+            startLabel.cmd = IRCmd::LLABEL;
+            startLabel.imm = while_slabel;
+            func.instrPool.push_back(startLabel);
+
+            // condition
+            VRegID condVid = genExpr(node.cond);
+
+            // jump to end label if cond is zero
+            IRInstr jz;
+            jz.cmd = IRCmd::JZ;
+            jz.s1 = condVid;
+            jz.imm = while_elabel;
+            func.instrPool.push_back(jz);
+
+            // currently body must have only one compound statement
+            genStmt(node.body[0]);
+
+            // jump back to start
+            IRInstr jmpStart;
+            jmpStart.cmd = IRCmd::JMP;
+            jmpStart.imm = while_slabel;
+            func.instrPool.push_back(jmpStart);
+
+            // end label
+            IRInstr endLabel;
+            endLabel.cmd = IRCmd::LLABEL;
+            endLabel.imm = while_elabel;
+            func.instrPool.push_back(endLabel);
+            break;            
         }
         case ASTKind::VarDecl: {
             // Currently, do nothing for variable declarations
@@ -146,6 +259,54 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
             Symbol& sym = module.getSymbol(symIdx);
             VRegID vid = func.newVRegVar(sym);
             return vid;
+        }
+        case ASTKind::Switch:
+        {
+            VRegID retVal = func.newVReg();
+            VRegID condVid = genExpr(node.cond);
+            int32_t endLabel = func.newLabel();
+
+            // condition check
+            for(auto caseIdx : node.body){
+                ASTNode caseNode = ps.getAST(caseIdx);
+                // caseNode.lhs: case value
+                // caseNode.rhs: case body
+
+                // compare condition with case value
+                VRegID caseValVid = genExpr(caseNode.lhs);
+                VRegID cmpVid = func.newVReg();
+                func.newIRInstr(IRCmd::EQUAL, condVid, caseValVid, cmpVid);
+
+                // jump to next case if not equal
+                IRInstr jz;
+                jz.cmd = IRCmd::JZ;
+                jz.s1 = cmpVid;
+                jz.imm = func.newLabel();
+                func.instrPool.push_back(jz);
+
+                // generate case body
+                VRegID caseRetVid = genExpr(caseNode.rhs);
+                // move caseRetVid to retVal
+                func.newIRInstr(IRCmd::MOV, caseRetVid, -1, retVal);
+
+                // jump to end
+                IRInstr jmpEnd;
+                jmpEnd.cmd = IRCmd::JMP;
+                jmpEnd.imm = endLabel;
+                func.instrPool.push_back(jmpEnd);
+
+                // next case label
+                IRInstr nextCaseLabel;
+                nextCaseLabel.cmd = IRCmd::LLABEL;
+                nextCaseLabel.imm = jz.imm;
+                func.instrPool.push_back(nextCaseLabel);
+            }
+
+            IRInstr jmpEnd;
+            jmpEnd.cmd = IRCmd::LLABEL;
+            jmpEnd.imm = endLabel;
+            func.instrPool.push_back(jmpEnd);
+            return retVal;
         }
         default:
             break;

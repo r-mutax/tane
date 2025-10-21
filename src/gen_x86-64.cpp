@@ -233,6 +233,30 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov [{}], {}\n", regName(rAddr), regName(rVal));
                 break;
             }
+            case IRCmd::LLABEL:
+            {
+                out.print(".L{}{}:\n", func.fname, instr.imm);
+                break;
+            }
+            case IRCmd::JMP:
+            {
+                out.print("  jmp .L{}{}\n", func.fname, instr.imm);
+                break;
+            }
+            case IRCmd::JZ:
+            {
+                PhysReg rCond = func.regAlloc.alloc(instr.s1);
+                out.print("  cmp {}, 0\n", regName(rCond));
+                out.print("  je .L{}{}\n", func.fname, instr.imm);
+                break;
+            }
+            case IRCmd::MOV:
+            {
+                PhysReg rSrc = func.regAlloc.alloc(instr.s1);
+                PhysReg rDst = func.regAlloc.alloc(instr.t);
+                out.print("  mov {}, {}\n", regName(rDst), regName(rSrc));
+                break;
+            }
             case IRCmd::MOV_IMM:
             {
                 PhysReg r = func.regAlloc.alloc(instr.t);

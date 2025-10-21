@@ -1,4 +1,7 @@
 # tane
+
+[![Tests](https://github.com/r-mutax/tane/actions/workflows/test.yml/badge.svg)](https://github.com/r-mutax/tane/actions/workflows/test.yml)
+
 Tane is a small programming language developed as a challenge to achieve self-hosting.
 
 # ENBF

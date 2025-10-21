@@ -32,6 +32,42 @@ ASTIdx Parser::stmt(){
         ASTIdx n = newNode(ASTKind::Return, expr(), 0);
         ts.expect(TokenKind::Semicolon);
         return n;
+    } else if(ts.consume(TokenKind::If)){
+        ASTIdx cond = expr();
+        
+        ts.expect(TokenKind::LBrace);
+        ASTIdx thenBr = compoundStmt();
+
+        ASTIdx elseBr = -1;
+        if(ts.peekKind(TokenKind::Else)){
+            ts.consume(TokenKind::Else);
+            if(ts.peekKind(TokenKind::If)){
+                // else if
+                elseBr = stmt();
+            } else {
+                // else
+                ts.expect(TokenKind::LBrace);
+                elseBr = compoundStmt();
+            }
+        }
+
+        ASTIdx n = newNode(ASTKind::If, cond, thenBr);
+        ASTNode& node = getAST(n);
+        node.cond = cond;
+        node.thenBr = thenBr;
+        node.elseBr = elseBr;
+        return n;
+    } else if(ts.consume(TokenKind::While)){
+        ASTIdx cond = expr();
+
+        ts.expect(TokenKind::LBrace);
+        ASTIdx body = compoundStmt();
+
+        ASTIdx n = newNode(ASTKind::While, cond, body);
+        ASTNode& node = getAST(n);
+        node.cond = cond;
+        node.body.push_back(body);
+        return n;
     } else if(ts.consume(TokenKind::Let)){
         bool is_mut = false;
         if(ts.consume(TokenKind::Mut)){
@@ -244,6 +280,28 @@ ASTIdx Parser::primary(){
         ASTIdx n = newNode(ASTKind::Variable, 0, 0);
         ASTNode& node = getAST(n);
         node.name = std::string(t.pos, t.len);
+        return n;
+    }
+
+    if(ts.consume(TokenKind::Switch)){
+        ASTIdx cond = expr();
+
+        ASTIdx n = newNode(ASTKind::Switch, 0, 0);
+        getAST(n).cond = cond;
+        ts.expect(TokenKind::LBrace);
+        while(!ts.consume(TokenKind::RBrace)){
+            ASTIdx caseExpr = expr();
+            ts.expect(TokenKind::EqualArrow);
+            ASTIdx caseBody = expr();
+
+            ASTIdx caseNode = newNode(ASTKind::Case, caseExpr, caseBody);
+            getAST(n).body.push_back(caseNode);
+            if(ts.peekKind(TokenKind::RBrace, 1) == false){
+                ts.expect(TokenKind::Comma);
+            } else {
+                ts.consume(TokenKind::Comma);
+            }
+        }
         return n;
     }
 
