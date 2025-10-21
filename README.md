@@ -2,65 +2,81 @@
 
 [![Tests](https://github.com/r-mutax/tane/actions/workflows/test.yml/badge.svg)](https://github.com/r-mutax/tane/actions/workflows/test.yml)
 
-Tane is a small programming language developed as a challenge to achieve self-hosting.
+## Introduction
 
-# ENBF
+Tane is a small programming language that aims for self-hosting. Currently, the Tane compiler receives a code segment and outputs an x86-64 assembly file (out.s).
+
+### Currently Supported Features
+
+- **Expressions**: Arithmetic operators (`+` `-` `*` `/` `%`), bitwise operators (`&` `|` `^` `<<` `>>`), comparison operators (`==` `!=` `<` `<=`), logical operators (`&&` `||`), switch expressions
+- **Statements**: Variable declaration (`let`/`mut`), assignment, `return`, compound statements, `if`/`else`
+- **Variables**: Local variables are currently 8 bytes each and allocated on the stack (first at `[rbp - 8]`, second at `[rbp - 16]`, ...)
+
+### Roadmap
+
+- Add `break` / `continue` statements
+- Function definition and invocation, type system expansion
+
+The EBNF below shows the minimal core specification (being updated incrementally).
+
+# EBNF (Current Implementation)
+
 ```
-file            := top-decl* ;
+/* ---- Top Level ---- */
+file            := '{' stmts '}' ;
 
-top-decl        := pub? ( let-decl | fn-decl ) ;
-pub             := 'pub' ;
-
-let-decl        := 'mut' 'let' ident-name ':' type-spec ';' ;
-
-fn-decl         := 'fn' ident-name '(' params? ')' return-type block ;
-params          := param (',' param)* (',')? ;
-param           := ident-name ':' type-spec ;
-return-type     := ('->' type-spec)? ;
-
-type-spec       := 'i8' | 'i16' | 'i32' | 'i64' | 'u8' | 'u16' | 'u32' | 'u64' ;
-
+/* ---- Statements ---- */
 block           := '{' stmts '}' ;
 stmts           := stmt* ;
-stmt            := let-stmt | assign-stmt | expr-stmt | return-stmt ;
+stmt            := let-stmt 
+                 | assign-stmt 
+                 | if-stmt
+                 | while-stmt
+                 | block
+                 | return-stmt 
+                 | expr-stmt ;
 
-let-stmt        := 'mut' 'let' ident-name ':' type-spec ';' ;
-assign-stmt     := lvalue '=' expr ';' ;
-expr-stmt       := expr ';' ;
+let-stmt        := 'let' 'mut'? ident-name ';' ;
+assign-stmt     := ident-name '=' expr ';' ;
 return-stmt     := 'return' expr? ';' ;
+expr-stmt       := expr ';' ;
 
-lvalue          := ident-name ;
+if-stmt         := 'if' expr block else-clause? ;
+else-clause     := 'else' ( if-stmt | block ) ;
 
-/* ---- expressions ---- */
+while-stmt      := 'while' expr block ;
+
+/* ---- Expressions ---- */
 expr            := logical_or ;
 
-logical_or      := logical_and        ( '||' logical_and )* ;
-logical_and     := bitwise_or         ( '&&' bitwise_or )* ;
-bitwise_or      := bitwise_xor        ( '|'  bitwise_xor )* ;
-bitwise_xor     := bitwise_and        ( '^'  bitwise_and )* ;
-bitwise_and     := equality           ( '&'  equality )* ;
+logical_or      := logical_and ( '||' logical_and )* ;
+logical_and     := bitwise_or ( '&&' bitwise_or )* ;
+bitwise_or      := bitwise_xor ( '|' bitwise_xor )* ;
+bitwise_xor     := bitwise_and ( '^' bitwise_and )* ;
+bitwise_and     := equality ( '&' equality )* ;
 
-equality        := relational         ( ('==' | '!=') relational )* ;
-relational      := shift              ( ('<' | '<=' | '>' | '>=') shift )* ;
+equality        := relational ( ('==' | '!=') relational )* ;
+relational      := shift ( ('<' | '<=') shift )* ;
 
-shift           := additive           ( ('<<' | '>>') additive )* ;
-additive        := multiplicative     ( ('+' | '-') multiplicative )* ;
-multiplicative  := unary              ( ('*' | '/' | '%') unary )* ;
+shift           := additive ( ('<<' | '>>') additive )* ;
+additive        := multiplicative ( ('+' | '-') multiplicative )* ;
+multiplicative  := unary ( ('*' | '/' | '%') unary )* ;
 
-unary           := postfix
-                 | ('+' | '-' | '!' | '~') unary ;
+unary           := ('+' | '-') unary
+                 | primary ;
 
-postfix         := primary ( call_suffix )* ;
-call_suffix     := '(' args? ')' ;
-args            := expr (',' expr)* (',')? ;
+primary         := int-lit
+                 | ident-name
+                 | '(' expr ')'
+                 | switch-expr ;
 
-primary         := ident-name
-                 | int-lit
-                 | '(' expr ')' ;
+switch-expr     := 'switch' expr '{' switch-arm* '}' ;
+switch-arm      := expr '=>' expr ','? ;
 
-/* ---- lexicals ---- */
-ident-name      := /[A-Za-z_][A-Za-z0-9_]*/;
+/* ---- Lexical ---- */
+ident-name      := /[A-Za-z_][A-Za-z0-9_]*/ ;
 int-lit         := '0' | /[1-9][0-9_]*/ ;
 WS              := ( ' ' | '\t' | '\r' | '\n' )+ ; 
-LINE_COMMENT    := '//' [^\n]* ;
 ```
+
+**Note**: Function definitions, type annotations, and many advanced features shown above are planned but not yet implemented. The grammar reflects the current working subset.
