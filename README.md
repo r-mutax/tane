@@ -4,18 +4,74 @@
 
 ## Introduction
 
-Tane is a small programming language that aims for self-hosting. Currently, the Tane compiler receives a code segment and outputs an x86-64 assembly file (out.s).
+Tane is a small programming language that aims for self-hosting. Currently, the Tane compiler receives a code segment and outputs an x86-64 assembly file.
 
 ### Currently Supported Features
 
 - **Expressions**: Arithmetic operators (`+` `-` `*` `/` `%`), bitwise operators (`&` `|` `^` `<<` `>>`), comparison operators (`==` `!=` `<` `<=`), logical operators (`&&` `||`), switch expressions
-- **Statements**: Variable declaration (`let`/`mut`), assignment, `return`, compound statements, `if`/`else`
+- **Statements**: Variable declaration (`let`/`mut`), assignment, `return`, compound statements, `if`/`else`, `while`
+- **Functions**: Function definitions and no-argument function calls
 - **Variables**: Local variables are currently 8 bytes each and allocated on the stack (first at `[rbp - 8]`, second at `[rbp - 16]`, ...)
+
+## Getting Started
+
+### Building
+
+```bash
+make
+```
+
+### Usage
+
+The Tane compiler can compile source code from either a file or a command-line string.
+
+#### Compile from file
+
+```bash
+./build/tane <source.tn>           # Output to out.s
+./build/tane <source.tn> -o <out>  # Specify output file
+```
+
+**Example:**
+```bash
+./build/tane example.tn
+gcc -o program out.s
+./program
+```
+
+#### Compile from command-line string
+
+```bash
+./build/tane -c "<code>"           # Output to out.s
+./build/tane -c "<code>" -o <out>  # Specify output file
+```
+
+**Example:**
+```bash
+./build/tane -c "fn main() { return 42; }"
+gcc -o program out.s
+./program
+echo $?  # Outputs: 42
+```
+
+#### Options
+
+- `-c <code>`: Compile code string directly (alternative to file input)
+- `-o <file>`: Specify output assembly file (default: `out.s`)
+
+### Running Tests
+
+```bash
+make test
+```
+
+The test suite compiles various Tane programs, assembles them with `gcc`, and verifies the exit codes.
 
 ### Roadmap
 
 - Add `break` / `continue` statements
-- Function definition and invocation, type system expansion
+- Function arguments and parameters
+- Type system expansion
 
 The EBNF below shows the minimal core specification (being updated incrementally).
 
