@@ -250,6 +250,13 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  je .L{}{}\n", func.fname, instr.imm);
                 break;
             }
+            case IRCmd::CALL:
+            {
+                PhysReg r = func.regAlloc.alloc(instr.t);
+                out.print("  call {}\n", irm.getSymbol(instr.imm).name);
+                out.print("  mov {}, rax\n", regName(r));
+                break;
+            }
             case IRCmd::MOV:
             {
                 PhysReg rSrc = func.regAlloc.alloc(instr.s1);

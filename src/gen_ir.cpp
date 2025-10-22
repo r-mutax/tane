@@ -26,6 +26,12 @@ void IRGenerator::bindTU(ASTIdx idx){
 void IRGenerator::bindFunc(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
 
+    Symbol sym;
+    sym.name = node.name;
+    sym.isMut = false; // functions are not mutable
+    sym.kind = SymbolKind::Function;
+    module.insertSymbol(sym);
+
     module.currentStackSize = 0;
     module.scopeIn();
     bindStmt(node.body[0]);  // function body
@@ -97,7 +103,16 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 fprintf(stderr, "Undefined variable: %s\n", node.name.c_str());
                 exit(1);
             }
-            module.varSymMap[idx] = symIdx;
+            module.astSymMap[idx] = symIdx;
+            break;
+        }
+        case ASTKind::FunctionCall:{
+            SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
+            if(symIdx == -1){
+                fprintf(stderr, "Undefined function: %s\n", node.name.c_str());
+                exit(1);
+            }
+            module.astSymMap[idx] = symIdx;
             break;
         }
         case ASTKind::Switch: {
@@ -259,10 +274,25 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
             }
         case ASTKind::Variable:
         {
-            SymbolIdx symIdx = module.varSymMap[idx];
+            SymbolIdx symIdx = module.astSymMap[idx];
             Symbol& sym = module.getSymbol(symIdx);
             VRegID vid = func.newVRegVar(sym);
             return vid;
+        }
+        case ASTKind::FunctionCall:
+        {
+            SymbolIdx symIdx = module.astSymMap[idx];
+            Symbol& sym = module.getSymbol(symIdx);
+
+            // currently no argument support
+            VRegID retVid = func.newVReg();
+            IRInstr instr;
+            instr.cmd = IRCmd::CALL;
+            instr.imm = symIdx; // function symbol index
+            instr.t = retVid;
+            func.instrPool.push_back(instr);
+
+            return retVid;
         }
         case ASTKind::Switch:
         {
@@ -430,7 +460,7 @@ VRegID IRGenerator::genlvalue(ASTIdx idx){
     switch(node.kind){
         case ASTKind::Variable:
         {
-            SymbolIdx symIdx = module.varSymMap[idx];
+            SymbolIdx symIdx = module.astSymMap[idx];
             Symbol& sym = module.getSymbol(symIdx);
             VRegID addrVid = func.newVReg();
             IRInstr addrInstr;
