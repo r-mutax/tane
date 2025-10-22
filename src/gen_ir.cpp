@@ -24,9 +24,11 @@ void IRGenerator::bindTU(ASTIdx idx){
 }
 
 void IRGenerator::bindFunc(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+
     module.currentStackSize = 0;
     module.scopeIn();
-    bindStmt(idx);
+    bindStmt(node.body[0]);  // function body
     module.scopeOut();
 
     module.funcSem[idx].localBytes = module.currentStackSize;
@@ -116,13 +118,15 @@ void IRGenerator::bindExpr(ASTIdx idx){
 }
 
 IRFunc IRGenerator::genFunc(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+
     func.clean();
-    func.fname = "main";
+    func.fname = node.name;
 
     FuncSem fs = module.funcSem[idx];
     func.localStackSize = fs.localBytes;
 
-    genStmt(idx);
+    genStmt(node.body[0]);  // function body
 
     return func;
 }

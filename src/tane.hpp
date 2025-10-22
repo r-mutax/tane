@@ -50,6 +50,7 @@ enum class TokenKind {
     Else,        // "else"
     While,       // "while"
     Switch,      // "switch"
+    Fn,          // "fn"
     Ident,       // Identifier
     Eof,
 };
@@ -112,6 +113,7 @@ void print_tokens(Token* token);
 typedef int32_t ASTIdx;
 enum class ASTKind {
     TranslationUnit,
+    Function,
     Num,
     Add,
     Sub,
@@ -172,6 +174,7 @@ public:
 private:
     Tokenizer::TokenStream& ts;
     std::vector<ASTNode> nodes;
+    ASTIdx functionDef();
     ASTIdx compoundStmt();
     ASTIdx stmt();
     ASTIdx expr();

@@ -168,6 +168,7 @@ Tokenizer::Tokenizer(){
     keyword_map["else"] = TokenKind::Else;
     keyword_map["while"] = TokenKind::While;
     keyword_map["switch"] = TokenKind::Switch;
+    keyword_map["fn"] = TokenKind::Fn;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){
