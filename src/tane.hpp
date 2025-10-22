@@ -140,6 +140,7 @@ enum class ASTKind {
     While,
     Switch,
     Case,
+    FunctionCall,
 };
 
 struct ASTNode {
@@ -209,9 +210,11 @@ public:
     PhysReg assigned = PhysReg::None;
 };
 
+enum class SymbolKind : uint8_t { Variable, Function };
 
 class Symbol{
 public:
+    SymbolKind kind = SymbolKind::Variable;
     std::string name;
     TokenIdx tokenIdx;
     bool isMut;
@@ -246,6 +249,7 @@ enum class IRCmd {
     JZ,             // jmp if zero
     JNZ,
     JMP,            // unconditional jmp
+    CALL,
 };
 /*
     cond
@@ -447,7 +451,7 @@ public:
     std::vector<Symbol> symbolPool;
 
     std::unordered_map<ASTIdx, FuncSem> funcSem;
-    std::unordered_map<ASTIdx, SymbolIdx> varSymMap;
+    std::unordered_map<ASTIdx, SymbolIdx> astSymMap;
 
     ScopeIdx curScope = -1;
     ScopeIdx globalScope = -1;

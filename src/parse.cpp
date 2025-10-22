@@ -296,12 +296,25 @@ ASTIdx Parser::primary(){
     }
 
     if(auto idxOpt = ts.consumeIdent()){
+        // get token
         TokenIdx idx = *idxOpt;
         Token t = ts.getToken(idx);
-        ASTIdx n = newNode(ASTKind::Variable, 0, 0);
-        ASTNode& node = getAST(n);
-        node.name = std::string(t.pos, t.len);
-        return n;
+
+        if(ts.peekKind(TokenKind::LParen)){
+            // function call
+            ts.expect(TokenKind::LParen);
+            ts.expect(TokenKind::RParen);
+
+            ASTIdx n = newNode(ASTKind::FunctionCall, 0, 0);
+            ASTNode& node = getAST(n);
+            node.name = std::string(t.pos, t.len);
+            return n;
+        } else {
+            ASTIdx n = newNode(ASTKind::Variable, 0, 0);
+            ASTNode& node = getAST(n);
+            node.name = std::string(t.pos, t.len);
+            return n;
+        }
     }
 
     if(ts.consume(TokenKind::Switch)){
