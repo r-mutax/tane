@@ -5,13 +5,34 @@ ASTIdx Parser::parseFile() {
 
     ASTIdx tu = newNode(ASTKind::TranslationUnit, 0, 0);
 
-    ts.expect(TokenKind::LBrace);
-    ASTIdx cs = compoundStmt();
+    while(!ts.peekKind(TokenKind::Eof)){
+        ASTIdx func = functionDef();
 
-    ASTNode& tuNode = getAST(tu);
-    tuNode.body.push_back(cs);
+        ASTNode& tuNode = getAST(tu);
+        tuNode.body.push_back(func);
+    }
 
     return tu;
+}
+
+ASTIdx Parser::functionDef(){
+    ts.expect(TokenKind::Fn);
+
+    TokenIdx ident = ts.expectIdent();
+    Token t = ts.getToken(ident);
+    std::string fname(t.pos, t.len);
+
+    ts.expect(TokenKind::LParen);
+    ts.expect(TokenKind::RParen);
+
+    ts.expect(TokenKind::LBrace);
+    ASTIdx body = compoundStmt();
+
+    ASTIdx n = newNode(ASTKind::Function, 0, 0);
+    ASTNode& node = getAST(n);
+    node.name = fname;
+    node.body.push_back(body);
+    return n;
 }
 
 ASTIdx Parser::compoundStmt(){
