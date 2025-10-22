@@ -30,8 +30,8 @@ run_test() {
   echo "Testing: $code"
   
   # Step 1: Generate assembly
-  echo "> $BIN \"$code\""
-  if ! $BIN "$code" 2>/dev/null; then
+  echo "> $BIN -c \"$code\""
+  if ! $BIN -c "$code" 2>/dev/null; then
     echo "❌ Failed to generate assembly"
     ((fail++))
     return
