@@ -34,6 +34,21 @@ void IRGenerator::bindFunc(ASTIdx idx){
 
     module.currentStackSize = 0;
     module.scopeIn();
+
+    // Add function parameters to symbol table
+    std::vector<SymbolIdx> paramSyms;
+    for(auto paramIdx : node.params){
+        ASTNode paramNode = ps.getAST(paramIdx);
+        Symbol sym;
+        sym.name = paramNode.name;
+        sym.isMut = true;
+        sym.kind = SymbolKind::Variable;
+        SymbolIdx symidx = module.insertSymbol(sym); 
+        paramSyms.push_back(symidx);  
+    }
+    FuncSem& fs = module.funcSem[idx];
+    fs.params = paramSyms;
+
     bindStmt(node.body[0]);  // function body
     module.scopeOut();
 
@@ -96,7 +111,7 @@ void IRGenerator::bindExpr(ASTIdx idx){
     switch(node.kind){
         case ASTKind::Num:
             // nothing to do
-            break;
+            return;
         case ASTKind::Variable: {
             SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
             if(symIdx == -1){
@@ -104,7 +119,7 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 exit(1);
             }
             module.astSymMap[idx] = symIdx;
-            break;
+            return;
         }
         case ASTKind::FunctionCall:{
             SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
@@ -113,7 +128,7 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 exit(1);
             }
             module.astSymMap[idx] = symIdx;
-            break;
+            return;
         }
         case ASTKind::Switch: {
             bindExpr(node.cond);
@@ -125,11 +140,16 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 bindExpr(caseNode.rhs);
                 module.scopeOut();
             }
-            break;
+            return;
         }
         default:
             break;
     }
+
+    if(node.lhs != -1)
+        bindExpr(node.lhs);
+    if(node.rhs != -1)
+        bindExpr(node.rhs);
 }
 
 IRFunc IRGenerator::genFunc(ASTIdx idx){
@@ -140,6 +160,8 @@ IRFunc IRGenerator::genFunc(ASTIdx idx){
 
     FuncSem fs = module.funcSem[idx];
     func.localStackSize = fs.localBytes;
+    func.params.clear();
+    func.params = fs.params;        
 
     genStmt(node.body[0]);  // function body
 
@@ -284,12 +306,18 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
             SymbolIdx symIdx = module.astSymMap[idx];
             Symbol& sym = module.getSymbol(symIdx);
 
-            // currently no argument support
             VRegID retVid = func.newVReg();
             IRInstr instr;
             instr.cmd = IRCmd::CALL;
             instr.imm = symIdx; // function symbol index
             instr.t = retVid;
+
+            // prepare arguments
+            for(size_t i = 0; i < node.args.size(); i++){
+                VRegID argVid = genExpr(node.args[i]);
+                instr.args.push_back(argVid);
+            }
+
             func.instrPool.push_back(instr);
 
             return retVid;

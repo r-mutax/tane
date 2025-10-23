@@ -17,6 +17,25 @@ void X86Generator::emitFunc(IRFunc& func){
     out.print("  push rbp\n");
     out.print("  mov rbp, rsp\n");
     out.print("  sub rsp, {}\n", func.localStackSize);
+
+    for(auto i = 0; i < func.params.size(); i++){
+        SymbolIdx symIdx = func.params[i];
+        Symbol& sym = irm.getSymbol(symIdx);
+        PhysReg paramReg;
+        switch(i){
+            case 0: paramReg = PhysReg::RDI; break;
+            case 1: paramReg = PhysReg::RSI; break;
+            case 2: paramReg = PhysReg::RDX; break;
+            case 3: paramReg = PhysReg::RCX; break;
+            case 4: paramReg = PhysReg::R8;  break;
+            case 5: paramReg = PhysReg::R9;  break;
+            default:
+                fprintf(stderr, "More than 6 parameters not supported.\n");
+                exit(1);
+        }
+        out.print("  mov [rbp - {}], {}\n", sym.stackOffset, regName(paramReg));
+    }
+
     for(auto& instr : func.instrPool){
         func.regAlloc.expireAt(&instr - &func.instrPool[0]);
         switch(instr.cmd){
@@ -252,6 +271,19 @@ void X86Generator::emitFunc(IRFunc& func){
             }
             case IRCmd::CALL:
             {
+
+                for (size_t i = 0; i < instr.args.size(); i++) {
+                    PhysReg rArg = func.regAlloc.alloc(instr.args[i]);
+                    static const char* argRegs[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+                    if (i < 6) {
+                        out.print("  mov {}, {}\n", argRegs[i], regName(rArg));
+                    } else {
+                        // For simplicity, we won't handle more than 6 arguments here.
+                        fprintf(stderr, "Error: More than 6 function arguments not supported in X86 generation.\n");
+                        exit(1);
+                    }
+                }
+
                 PhysReg r = func.regAlloc.alloc(instr.t);
                 out.print("  call {}\n", irm.getSymbol(instr.imm).name);
                 out.print("  mov {}, rax\n", regName(r));
