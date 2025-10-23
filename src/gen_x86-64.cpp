@@ -16,7 +16,12 @@ void X86Generator::emitFunc(IRFunc& func){
     out.print("{}:\n", func.fname);
     out.print("  push rbp\n");
     out.print("  mov rbp, rsp\n");
-    out.print("  sub rsp, {}\n", func.localStackSize);
+    // Ensure 16-byte alignment for the stack within this function.
+    // At function entry (after the caller's call), rsp is 8 bytes off 16.
+    // push rbp -> rsp becomes 16-byte aligned. Keep it aligned by subtracting
+    // a multiple of 16 here so that before emitting any call, rsp stays 16-aligned.
+    uint32_t alignedLocal = (func.localStackSize + 15) & ~15u; // round up to 16
+    out.print("  sub rsp, {}\n", alignedLocal);
 
     for(auto i = 0; i < func.params.size(); i++){
         SymbolIdx symIdx = func.params[i];
