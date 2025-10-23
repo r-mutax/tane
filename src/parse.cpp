@@ -22,8 +22,24 @@ ASTIdx Parser::functionDef(){
     Token t = ts.getToken(ident);
     std::string fname(t.pos, t.len);
 
+    std::vector<ASTIdx> params;
+
     ts.expect(TokenKind::LParen);
-    ts.expect(TokenKind::RParen);
+    if(!ts.consume(TokenKind::RParen)){
+        do {
+            // get parameter name
+            TokenIdx paramIdent = ts.expectIdent();
+            Token pt = ts.getToken(paramIdent);
+            std::string pname(pt.pos, pt.len);
+
+            // create parameter node
+            ASTIdx paramNode = newNode(ASTKind::Variable, 0, 0);
+            ASTNode& pnode = getAST(paramNode);
+            pnode.name = pname;
+            params.push_back(paramNode);
+        } while(ts.consume(TokenKind::Comma));
+        ts.expect(TokenKind::RParen);
+    }
 
     ts.expect(TokenKind::LBrace);
     ASTIdx body = compoundStmt();
@@ -32,6 +48,7 @@ ASTIdx Parser::functionDef(){
     ASTNode& node = getAST(n);
     node.name = fname;
     node.body.push_back(body);
+    node.params = params;
     return n;
 }
 
@@ -303,11 +320,19 @@ ASTIdx Parser::primary(){
         if(ts.peekKind(TokenKind::LParen)){
             // function call
             ts.expect(TokenKind::LParen);
+
+            std::vector<ASTIdx> args;
+            if(!ts.peekKind(TokenKind::RParen)){
+                do{
+                    args.push_back(expr());
+                } while(ts.consume(TokenKind::Comma));
+            }
             ts.expect(TokenKind::RParen);
 
             ASTIdx n = newNode(ASTKind::FunctionCall, 0, 0);
             ASTNode& node = getAST(n);
             node.name = std::string(t.pos, t.len);
+            node.args = std::move(args);
             return n;
         } else {
             ASTIdx n = newNode(ASTKind::Variable, 0, 0);

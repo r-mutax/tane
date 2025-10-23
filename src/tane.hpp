@@ -153,6 +153,12 @@ struct ASTNode {
 
     // For CompoundStmt or Function
     std::vector<ASTIdx> body;
+
+    // For Function
+    std::vector<ASTIdx> params;
+
+    // For FunctionCall
+    std::vector<ASTIdx> args;
     
     // For VarDecl
     std::string name;
@@ -200,7 +206,7 @@ private:
     void printAST(const ASTNode& node, int32_t depth = 0) const;
 };
 
-enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX };
+enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX, RDI, RSI, RDX, RCX, R8, R9 };
 enum class VRegKind : uint8_t { Temp, Imm, LVarAddr };
 typedef int32_t VRegID;
 class VReg{
@@ -268,6 +274,7 @@ public:
     VRegID s2 = -1;
     VRegID t = -1;
     int32_t imm = 0;
+    std::vector<VRegID> args;
 };
 
 
@@ -280,6 +287,12 @@ inline const char* regName(PhysReg r) {
         case PhysReg::R14: return "r14";
         case PhysReg::R15: return "r15";
         case PhysReg::RAX: return "rax";
+        case PhysReg::RDI: return "rdi";
+        case PhysReg::RSI: return "rsi";
+        case PhysReg::RDX: return "rdx";
+        case PhysReg::RCX: return "rcx";
+        case PhysReg::R8:  return "r8";
+        case PhysReg::R9:  return "r9";
         default: return "none";
     }
 }
@@ -293,6 +306,12 @@ inline const char* regName8(PhysReg r) {
         case PhysReg::R14: return "r14b";
         case PhysReg::R15: return "r15b";
         case PhysReg::RAX: return "al";
+        case PhysReg::RDI: return "dil";
+        case PhysReg::RSI: return "sil";
+        case PhysReg::RDX: return "dl";
+        case PhysReg::RCX: return "cl";
+        case PhysReg::R8:  return "r8b";
+        case PhysReg::R9:  return "r9b";
         default: return "none";
     }
 }
@@ -303,6 +322,7 @@ class IRFunc{
     friend class RegAlloc;
     std::vector<IRInstr> instrPool;
     std::vector<VReg> vregs;
+    std::vector<SymbolIdx> params;
     int32_t labelCounter = 0;
 
     class RegAlloc{
@@ -326,6 +346,9 @@ class IRFunc{
                 mark(ins.s1);
                 mark(ins.s2);
                 mark(ins.t);
+                for(auto arg : ins.args){
+                    mark(arg);
+                }
             }
         }
         void expireAt(size_t pos){
@@ -442,6 +465,7 @@ public:
 
 struct FuncSem{
     uint32_t localBytes{0};
+    std::vector<SymbolIdx> params;
 };
 
 class IRModule{

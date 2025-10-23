@@ -7,7 +7,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/tane",
             "args": [
-                "fn f(){return 7;} fn main(){return f();}"
+                "-c",
+                "fn f(a, b){return a + b;} fn main(){return f(1, 2);}"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
