@@ -23,7 +23,7 @@ void X86Generator::emitFunc(IRFunc& func){
     uint32_t alignedLocal = (func.localStackSize + 15) & ~15u; // round up to 16
     out.print("  sub rsp, {}\n", alignedLocal);
 
-    for(auto i = 0; i < func.params.size(); i++){
+    for(size_t i = 0; i < func.params.size(); i++){
         SymbolIdx symIdx = func.params[i];
         Symbol& sym = irm.getSymbol(symIdx);
         PhysReg paramReg;

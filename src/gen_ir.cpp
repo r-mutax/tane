@@ -304,7 +304,6 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
         case ASTKind::FunctionCall:
         {
             SymbolIdx symIdx = module.astSymMap[idx];
-            Symbol& sym = module.getSymbol(symIdx);
 
             VRegID retVid = func.newVReg();
             IRInstr instr;
