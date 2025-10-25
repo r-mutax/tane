@@ -225,6 +225,7 @@ public:
     TokenIdx tokenIdx;
     bool isMut;
     uint32_t stackOffset = 0;
+    std::vector<SymbolIdx> params;
 };
 
 
@@ -554,6 +555,35 @@ public:
             exit(1);
         }
         return symbolPool[idx];
+    }
+
+    void outputSymbols(std::string module){
+        FILE *fp;
+        std::string filename = module + ".tnlib";
+        fp = fopen(filename.c_str(), "w");
+        if(!fp){
+            fprintf(stderr, "Cannot open file: %s\n", filename.c_str());
+            exit(1);
+        }
+
+        fprintf(fp, "tnlib 1.0\n");
+        fprintf(fp, "module %s\n", module.c_str());
+        for(size_t i = 0; i < symbolPool.size(); i++){
+            const auto& sym = symbolPool[i];
+            if(sym.kind == SymbolKind::Function){
+                fprintf(fp, "fn %s(", sym.name.c_str());
+                for(size_t j = 0; j < sym.params.size(); j++){
+                    const auto& paramSym = getSymbol(sym.params[j]);
+                    fprintf(fp, "%s", paramSym.name.c_str());
+                    if(j + 1 < sym.params.size()){
+                        fprintf(fp, ", ");  
+                    }
+                }
+                fprintf(fp, ")\n");
+            }
+        }
+        fprintf(fp, "end\n");
+        fclose(fp);
     }
 
     void printSymbols(){

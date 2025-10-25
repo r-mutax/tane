@@ -30,7 +30,6 @@ void IRGenerator::bindFunc(ASTIdx idx){
     sym.name = node.name;
     sym.isMut = false; // functions are not mutable
     sym.kind = SymbolKind::Function;
-    module.insertSymbol(sym);
 
     module.currentStackSize = 0;
     module.scopeIn();
@@ -39,18 +38,21 @@ void IRGenerator::bindFunc(ASTIdx idx){
     std::vector<SymbolIdx> paramSyms;
     for(auto paramIdx : node.params){
         ASTNode paramNode = ps.getAST(paramIdx);
-        Symbol sym;
-        sym.name = paramNode.name;
-        sym.isMut = true;
-        sym.kind = SymbolKind::Variable;
-        SymbolIdx symidx = module.insertSymbol(sym); 
-        paramSyms.push_back(symidx);  
+        Symbol paramSym;
+        paramSym.name = paramNode.name;
+        paramSym.isMut = true;
+        paramSym.kind = SymbolKind::Variable;
+        SymbolIdx symidx = module.insertSymbol(paramSym);
+        paramSyms.push_back(symidx);
     }
     FuncSem& fs = module.funcSem[idx];
     fs.params = paramSyms;
 
     bindStmt(node.body[0]);  // function body
     module.scopeOut();
+
+    sym.params = paramSyms;
+    module.insertSymbol(sym);
 
     module.funcSem[idx].localBytes = module.currentStackSize;
 }

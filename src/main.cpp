@@ -24,6 +24,17 @@ std::string readFile(const char* filename) {
     return buffer.str();
 }
 
+std::string getModuleName(const char* filepath) {
+    std::string pathStr(filepath);
+    size_t lastSlash = pathStr.find_last_of("/\\");
+    size_t lastDot = pathStr.find_last_of('.');
+    if (lastDot == std::string::npos || (lastSlash != std::string::npos && lastDot < lastSlash)) {
+        lastDot = pathStr.length();
+    }
+    size_t start = (lastSlash == std::string::npos) ? 0 : lastSlash + 1;
+    return pathStr.substr(start, lastDot - start);
+}
+
 int main(int argc, char** argv) {
     if(argc < 2){
         printUsage(argv[0]);
@@ -96,6 +107,15 @@ int main(int argc, char** argv) {
     // Generate IR
     IRGenerator irgen(root, parser);
     IRModule& mod = irgen.run();
+
+    // get module name
+    std::string moduleName;
+    if(inputFile != nullptr){
+        moduleName = getModuleName(inputFile);
+    } else {
+        moduleName = "module";
+    }
+    mod.outputSymbols(moduleName);
 
     // Generate assembly
     X86Generator x86gen(mod);
