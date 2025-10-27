@@ -1,6 +1,18 @@
 #include "tane.hpp"
 
+std::map<std::string, TokenKind> Tokenizer::keyword_map = {
+    {"return", TokenKind::Return},
+    {"let", TokenKind::Let},
+    {"mut", TokenKind::Mut},
+    {"if", TokenKind::If},
+    {"else", TokenKind::Else},
+    {"while", TokenKind::While},
+    {"switch", TokenKind::Switch},
+    {"fn", TokenKind::Fn},
+};
+
 Tokenizer::TokenStream& Tokenizer::scan(char* p){
+    TokenStream& ts = *(new TokenStream());
     ts.clear();
 
     bool continue_flg = true;
@@ -160,15 +172,6 @@ bool Tokenizer::is_ident2(char c){
 }
 
 Tokenizer::Tokenizer(){
-    // Initialize keyword map
-    keyword_map["return"] = TokenKind::Return;
-    keyword_map["let"] = TokenKind::Let;
-    keyword_map["mut"] = TokenKind::Mut;
-    keyword_map["if"] = TokenKind::If;
-    keyword_map["else"] = TokenKind::Else;
-    keyword_map["while"] = TokenKind::While;
-    keyword_map["switch"] = TokenKind::Switch;
-    keyword_map["fn"] = TokenKind::Fn;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){
@@ -240,7 +243,7 @@ std::optional<TokenIdx> Tokenizer::TokenStream::consumeIdent(){
 // For debugging
 
 /// Print the tokens in the linked list
-void Tokenizer::printTokens(){
+void Tokenizer::printTokens(TokenStream& ts){
     for(auto it : ts.tokens) {
         printTokenKind(it.kind); 
         printf("\n");

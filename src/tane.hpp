@@ -97,10 +97,10 @@ public:
     };
     TokenStream& scan(char* p);
     Tokenizer();
-    void printTokens();
+    void printTokens(TokenStream& ts);
 private:
-    std::map<std::string, TokenKind> keyword_map;
-    TokenStream ts;
+    static std::map<std::string, TokenKind> keyword_map;
+    //TokenStream ts;
     TokenKind checkKeyword(char* start, uint32_t len);
     bool is_ident1(char c);
     bool is_ident2(char c);
@@ -566,7 +566,7 @@ public:
             exit(1);
         }
 
-        fprintf(fp, "tnlib 1.0\n");
+        fprintf(fp, "tnlib 1\n");
         fprintf(fp, "module %s\n", module.c_str());
         for(size_t i = 0; i < symbolPool.size(); i++){
             const auto& sym = symbolPool[i];
