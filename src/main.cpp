@@ -7,6 +7,7 @@ void printUsage(const char* progName) {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -c <code>     : Compile code string directly\n");
     fprintf(stderr, "  -o <output.s> : Output assembly file (default: out.s)\n");
+    fprintf(stderr, "  -i <tnlibdir>: Specify tnlib directory\n");
     fprintf(stderr, "Examples:\n");
     fprintf(stderr, "  %s source.tn              # Compile file\n", progName);
     fprintf(stderr, "  %s -c \"fn main() {...}\"   # Compile string\n", progName);
@@ -45,6 +46,9 @@ int main(int argc, char** argv) {
     const char* codeString = nullptr;
     const char* outputFile = "out.s";
 
+    ModulePath modulePath;
+    modulePath.addDirPath("."); // current directory
+    
     // Parse arguments
     for(int i = 1; i < argc; i++){
         if(strcmp(argv[i], "-o") == 0){
@@ -61,6 +65,13 @@ int main(int argc, char** argv) {
                 return 1;
             }
             codeString = argv[++i];
+        } else if(strcmp(argv[i], "-i") == 0){
+            if(i + 1 >= argc){
+                fprintf(stderr, "Error: -i requires an argument\n");
+                printUsage(argv[0]);
+                return 1;
+            }
+            modulePath.addDirPath(argv[++i]);
         } else if(argv[i][0] == '-'){
             fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
             printUsage(argv[0]);
@@ -105,7 +116,7 @@ int main(int argc, char** argv) {
     ASTIdx root = parser.parseFile();
 
     // Generate IR
-    IRGenerator irgen(root, parser);
+    IRGenerator irgen(root, parser, modulePath);
     IRModule& mod = irgen.run();
 
     // get module name

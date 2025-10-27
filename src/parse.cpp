@@ -6,17 +6,28 @@ ASTIdx Parser::parseFile() {
     ASTIdx tu = newNode(ASTKind::TranslationUnit, 0, 0);
 
     while(!ts.peekKind(TokenKind::Eof)){
-        ASTIdx func = functionDef();
-
+        ASTIdx idx = -1;
+        if(ts.consume(TokenKind::Fn)){
+            idx = functionDef();
+        } else if(ts.consume(TokenKind::Import)){
+            idx = newNode(ASTKind::Import, 0, 0);
+            ASTNode& importNode = getAST(idx);
+            TokenIdx ident = ts.expectIdent();
+            ts.expect(TokenKind::Semicolon);
+            Token t = ts.getToken(ident);
+            importNode.name = std::string(t.pos, t.len);
+        } else {
+            fprintf(stderr, "Unexpected token at top level\n");
+            exit(1);
+        }
         ASTNode& tuNode = getAST(tu);
-        tuNode.body.push_back(func);
+        tuNode.body.push_back(idx);
     }
 
     return tu;
 }
 
 ASTIdx Parser::functionDef(){
-    ts.expect(TokenKind::Fn);
 
     TokenIdx ident = ts.expectIdent();
     Token t = ts.getToken(ident);

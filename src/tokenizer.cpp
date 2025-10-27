@@ -9,7 +9,15 @@ std::map<std::string, TokenKind> Tokenizer::keyword_map = {
     {"while", TokenKind::While},
     {"switch", TokenKind::Switch},
     {"fn", TokenKind::Fn},
+    {"import", TokenKind::Import},
 };
+
+std::map<std::string, TokenKind> Tokenizer::tnlib_keyword_map = {
+    {"tnlib", TokenKind::Tnlib},
+    {"module", TokenKind::Module},
+    {"fn", TokenKind::Fn},
+    {"end", TokenKind::Eof},
+};  
 
 Tokenizer::TokenStream& Tokenizer::scan(char* p){
     TokenStream& ts = *(new TokenStream());
@@ -155,12 +163,21 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
 }
 
 TokenKind Tokenizer::checkKeyword(char* start, uint32_t len){
-    if(keyword_map.find(std::string(start, len)) != keyword_map.end()){
-        return keyword_map[std::string(start, len)];
-    }
 
-    // Not a keyword, so it must be an identifier
-    return TokenKind::Ident;
+    if(for_tnlib){
+        if(tnlib_keyword_map.find(std::string(start, len)) != tnlib_keyword_map.end()){
+            return tnlib_keyword_map[std::string(start, len)];
+        }
+
+        // Not a keyword, so it must be an identifier
+        return TokenKind::Ident;
+    } else {
+        if(keyword_map.find(std::string(start, len)) != keyword_map.end()){
+            return keyword_map[std::string(start, len)];
+        }
+        // Not a keyword, so it must be an identifier
+        return TokenKind::Ident;
+    }
 }
 
 bool Tokenizer::is_ident1(char c){
@@ -169,9 +186,6 @@ bool Tokenizer::is_ident1(char c){
 
 bool Tokenizer::is_ident2(char c){
     return is_ident1(c) || isdigit(c);
-}
-
-Tokenizer::Tokenizer(){
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){

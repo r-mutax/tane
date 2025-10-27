@@ -8,8 +8,16 @@ IRModule& IRGenerator::run(){
 
     // generation of main function
     ASTNode rootNode = ps.getAST(root);
-    for(auto stmtIdx : rootNode.body){
-        module.funcPool.push_back(genFunc(stmtIdx));
+    for(auto astIdx : rootNode.body){
+        ASTNode& astNode = ps.getAST(astIdx);
+        if(astNode.kind == ASTKind::Import){
+            // Ignore imports during code generation
+        } else if(astNode.kind == ASTKind::Function){
+            module.funcPool.push_back(genFunc(astIdx));
+        } else {
+            fprintf(stderr, "Unexpected AST node in TranslationUnit during IR generation\n");
+            exit(1);
+        }
     }
 
     return module;
@@ -18,9 +26,32 @@ IRModule& IRGenerator::run(){
 void IRGenerator::bindTU(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
 
-    for(auto funcIdx : node.body){
-        bindFunc(funcIdx);
+    for(auto topIdx : node.body){
+        ASTNode topNode = ps.getAST(topIdx);
+        if(topNode.kind == ASTKind::Import){
+            bindImport(topIdx);
+        } else if(topNode.kind == ASTKind::Function){
+            bindFunc(topIdx);
+        } else {
+            fprintf(stderr, "Unexpected AST node in TranslationUnit\n");
+            exit(1);
+        }
     }
+}
+
+void IRGenerator::bindImport(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+    std::string moduleName = node.name;
+
+    std::string libPath = modulePath.resolve(moduleName);
+    if (libPath == "")
+    {
+        fprintf(stderr, "Failed to resolve import: %s\n", moduleName.c_str());
+        exit(1);
+    }
+
+    // Load the tnlib file
+    fprintf(stderr, "Importing module: %s from %s\n", moduleName.c_str(), libPath.c_str());   
 }
 
 void IRGenerator::bindFunc(ASTIdx idx){

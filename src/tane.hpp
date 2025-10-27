@@ -51,7 +51,11 @@ enum class TokenKind {
     While,       // "while"
     Switch,      // "switch"
     Fn,          // "fn"
+    Import,      // "import"
     Ident,       // Identifier
+    // =========== for tnlib ===========
+    Tnlib,
+    Module,
     Eof,
 };
 
@@ -96,12 +100,15 @@ public:
         }
     };
     TokenStream& scan(char* p);
-    Tokenizer();
+    Tokenizer(bool for_tnlib = false) : for_tnlib(for_tnlib) {}
+    bool for_tnlib;
     void printTokens(TokenStream& ts);
 private:
     static std::map<std::string, TokenKind> keyword_map;
+    static std::map<std::string, TokenKind> tnlib_keyword_map;
     //TokenStream ts;
     TokenKind checkKeyword(char* start, uint32_t len);
+    TokenKind checkKeywordTnlib(char* start, uint32_t len);
     bool is_ident1(char c);
     bool is_ident2(char c);
     void printTokenKind(TokenKind kind);
@@ -109,6 +116,26 @@ private:
 
 Token* tokenize(char* p);
 void print_tokens(Token* token);
+
+class ModulePath{
+    std::vector<std::string> tnlibDirs;
+public:
+    ModulePath() = default;
+    void addDirPath(const std::string& path){
+        tnlibDirs.push_back(path);
+    }
+    std::string resolve(const std::string& moduleName){
+        for(const auto& dir : tnlibDirs){
+            std::string fullPath = dir + "/" + moduleName + ".tnlib";
+            FILE* f = fopen(fullPath.c_str(), "r");
+            if(f != nullptr){
+                fclose(f);
+                return fullPath;
+            }
+        }
+        return "";
+    }
+};
 
 typedef int32_t ASTIdx;
 enum class ASTKind {
@@ -141,6 +168,7 @@ enum class ASTKind {
     Switch,
     Case,
     FunctionCall,
+    Import,
 };
 
 struct ASTNode {
@@ -599,6 +627,7 @@ class IRGenerator{
 private:
     IRFunc func;
     void bindTU(ASTIdx idx);
+    void bindImport(ASTIdx idx);
     void bindFunc(ASTIdx idx);
     void bindStmt(ASTIdx idx);
     void bindExpr(ASTIdx idx);
@@ -610,8 +639,8 @@ private:
 public:
     Parser& ps;
     ASTIdx root;
-    IRGenerator(ASTIdx idx, Parser& parser) : ps(parser), root(idx) {
-        
+    ModulePath& modulePath;
+    IRGenerator(ASTIdx idx, Parser& parser, ModulePath& mPath) : ps(parser), root(idx), modulePath(mPath) {
         module.scopes.push_back(Scope(-1));
         module.curScope = module.scopes.size() - 1;
         module.globalScope = module.scopes.size() - 1;
