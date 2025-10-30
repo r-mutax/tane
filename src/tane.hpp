@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <format>
 #include <string_view>
@@ -56,6 +57,8 @@ enum class TokenKind {
     // =========== for tnlib ===========
     Tnlib,
     Module,
+    End,         // "end"
+    // =========== end of tnlib ===========
     Eof,
 };
 
@@ -623,6 +626,20 @@ public:
 
 };
 
+class TnlibLoader
+{
+    // loaded module paths
+    std::unordered_set<std::string> loadedModules;
+
+    // module path resolver
+    ModulePath modulePath;
+
+    std::string readfile(const std::string& filepath);
+public:
+    TnlibLoader(ModulePath& mPath) : modulePath(mPath) {};
+    std::vector<Symbol> loadTnlib(const std::string& filepath);
+};
+
 class IRGenerator{
 private:
     IRFunc func;
@@ -639,8 +656,8 @@ private:
 public:
     Parser& ps;
     ASTIdx root;
-    ModulePath& modulePath;
-    IRGenerator(ASTIdx idx, Parser& parser, ModulePath& mPath) : ps(parser), root(idx), modulePath(mPath) {
+    TnlibLoader tnlibLoader;
+        IRGenerator(ASTIdx idx, Parser& parser, ModulePath& mPath) : ps(parser), root(idx), tnlibLoader(mPath) {
         module.scopes.push_back(Scope(-1));
         module.curScope = module.scopes.size() - 1;
         module.globalScope = module.scopes.size() - 1;

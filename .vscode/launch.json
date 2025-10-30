@@ -7,8 +7,11 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/tane",
             "args": [
-                "-c",
-                "fn f(a, b){return a + b;} fn main(){return f(1, 2);}"
+                "./test/src/main.tn",
+                "-i",
+                "./test/src",
+                // "-c",
+                // "fn f(a, b){return a + b;} fn main(){return f(1, 2);}"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

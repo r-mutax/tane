@@ -16,7 +16,7 @@ std::map<std::string, TokenKind> Tokenizer::tnlib_keyword_map = {
     {"tnlib", TokenKind::Tnlib},
     {"module", TokenKind::Module},
     {"fn", TokenKind::Fn},
-    {"end", TokenKind::Eof},
+    {"end", TokenKind::End},
 };  
 
 Tokenizer::TokenStream& Tokenizer::scan(char* p){

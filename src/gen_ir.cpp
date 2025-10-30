@@ -43,15 +43,10 @@ void IRGenerator::bindImport(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
     std::string moduleName = node.name;
 
-    std::string libPath = modulePath.resolve(moduleName);
-    if (libPath == "")
-    {
-        fprintf(stderr, "Failed to resolve import: %s\n", moduleName.c_str());
-        exit(1);
+    auto symbols = tnlibLoader.loadTnlib(moduleName);
+    for(auto& sym : symbols){
+        module.insertSymbol(sym);
     }
-
-    // Load the tnlib file
-    fprintf(stderr, "Importing module: %s from %s\n", moduleName.c_str(), libPath.c_str());   
 }
 
 void IRGenerator::bindFunc(ASTIdx idx){
