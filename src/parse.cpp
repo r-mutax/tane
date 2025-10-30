@@ -7,8 +7,10 @@ ASTIdx Parser::parseFile() {
 
     while(!ts.peekKind(TokenKind::Eof)){
         ASTIdx idx = -1;
+        bool is_pub = ts.consume(TokenKind::Pub);
+
         if(ts.consume(TokenKind::Fn)){
-            idx = functionDef();
+            idx = functionDef(is_pub);
         } else if(ts.consume(TokenKind::Import)){
             idx = newNode(ASTKind::Import, 0, 0);
             ASTNode& importNode = getAST(idx);
@@ -27,7 +29,7 @@ ASTIdx Parser::parseFile() {
     return tu;
 }
 
-ASTIdx Parser::functionDef(){
+ASTIdx Parser::functionDef(bool is_pub){
 
     TokenIdx ident = ts.expectIdent();
     Token t = ts.getToken(ident);
@@ -60,6 +62,7 @@ ASTIdx Parser::functionDef(){
     node.name = fname;
     node.body.push_back(body);
     node.params = params;
+    node.setPub(is_pub);
     return n;
 }
 
@@ -129,7 +132,7 @@ ASTIdx Parser::stmt(){
 
         Token t = ts.getToken(ident);
         node.name = std::string(t.pos, t.len);
-        node.is_mut = is_mut;
+        node.setMut(is_mut);
         ts.expect(TokenKind::Semicolon);
         return n;
     } else if(ts.consume(TokenKind::LBrace)){

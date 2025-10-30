@@ -53,6 +53,7 @@ enum class TokenKind {
     Switch,      // "switch"
     Fn,          // "fn"
     Import,      // "import"
+    Pub,         // "pub"
     Ident,       // Identifier
     // =========== for tnlib ===========
     Tnlib,
@@ -174,10 +175,30 @@ enum class ASTKind {
     Import,
 };
 
+enum class ASTFlags : uint8_t {
+    None = 0,
+    Mutable = 1 << 0,
+    Public = 1 << 1,
+};
+
+inline ASTFlags operator|(ASTFlags a, ASTFlags b) {
+    return static_cast<ASTFlags>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
+inline ASTFlags operator&(ASTFlags a, ASTFlags b) {
+    return static_cast<ASTFlags>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+
+inline bool hasFlag(ASTFlags flags, ASTFlags flag) {
+    return (flags & flag) != ASTFlags::None;
+}
+
 struct ASTNode {
     ASTKind kind;
     ASTIdx lhs;
     ASTIdx rhs;
+
+    ASTFlags flags = ASTFlags::None;
 
     // For Num
     int32_t val;
@@ -193,7 +214,6 @@ struct ASTNode {
     
     // For VarDecl
     std::string name;
-    bool is_mut;
 
     // For if statement
     ASTIdx cond;
@@ -201,6 +221,27 @@ struct ASTNode {
     ASTIdx elseBr;
 
     SymbolIdx symIdx;
+
+    bool isMut() const {
+        return hasFlag(flags, ASTFlags::Mutable);
+    }
+    bool isPub() const {
+        return hasFlag(flags, ASTFlags::Public);
+    }
+    void setMut(bool is_mut) {
+        if(is_mut) {
+            flags = flags | ASTFlags::Mutable;
+        } else {
+            flags = static_cast<ASTFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(ASTFlags::Mutable));
+        }
+    }
+    void setPub(bool is_pub) {
+        if(is_pub) {
+            flags = flags | ASTFlags::Public;
+        } else {
+            flags = static_cast<ASTFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(ASTFlags::Public));
+        }
+    }
 };
 
 class Parser{
@@ -212,7 +253,7 @@ public:
 private:
     Tokenizer::TokenStream& ts;
     std::vector<ASTNode> nodes;
-    ASTIdx functionDef();
+    ASTIdx functionDef(bool is_pub = false);
     ASTIdx compoundStmt();
     ASTIdx stmt();
     ASTIdx expr();
@@ -246,17 +287,55 @@ public:
     int32_t val;
     PhysReg assigned = PhysReg::None;
 };
-
 enum class SymbolKind : uint8_t { Variable, Function };
+
+// Symbol のフラグ
+enum class SymbolFlags : uint8_t {
+    None     = 0,
+    Mutable  = 1 << 0,  // let mut
+    Public   = 1 << 1,  // pub fn
+    External = 1 << 2,  // import された関数
+};
+
+inline SymbolFlags operator|(SymbolFlags a, SymbolFlags b) {
+    return static_cast<SymbolFlags>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
+inline SymbolFlags operator&(SymbolFlags a, SymbolFlags b) {
+    return static_cast<SymbolFlags>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+
+inline bool hasFlag(SymbolFlags flags, SymbolFlags flag) {
+    return (flags & flag) != SymbolFlags::None;
+}
 
 class Symbol{
 public:
     SymbolKind kind = SymbolKind::Variable;
     std::string name;
     TokenIdx tokenIdx;
-    bool isMut;
+    SymbolFlags flags = SymbolFlags::None;
     uint32_t stackOffset = 0;
     std::vector<SymbolIdx> params;
+    
+    // ヘルパーメソッド
+    bool isMut() const { return hasFlag(flags, SymbolFlags::Mutable); }
+    bool isPub() const { return hasFlag(flags, SymbolFlags::Public); }
+    
+    void setMut(bool is_mut) {
+        if(is_mut) {
+            flags = flags | SymbolFlags::Mutable;
+        } else {
+            flags = static_cast<SymbolFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(SymbolFlags::Mutable));
+        }
+    }
+    void setPub(bool is_pub) {
+        if(is_pub) {
+            flags = flags | SymbolFlags::Public;
+        } else {
+            flags = static_cast<SymbolFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(SymbolFlags::Public));
+        }
+    }
 };
 
 
@@ -601,6 +680,9 @@ public:
         fprintf(fp, "module %s\n", module.c_str());
         for(size_t i = 0; i < symbolPool.size(); i++){
             const auto& sym = symbolPool[i];
+            if(sym.isPub() == false){
+                continue; // skip non-public symbols
+            }
             if(sym.kind == SymbolKind::Function){
                 fprintf(fp, "fn %s(", sym.name.c_str());
                 for(size_t j = 0; j < sym.params.size(); j++){
@@ -610,7 +692,7 @@ public:
                         fprintf(fp, ", ");  
                     }
                 }
-                fprintf(fp, ")\n");
+                fprintf(fp, ");\n");
             }
         }
         fprintf(fp, "end\n");
@@ -620,7 +702,7 @@ public:
     void printSymbols(){
         for(size_t i = 0; i < symbolPool.size(); i++){
             const auto& sym = symbolPool[i];
-            std::cout << "Symbol[" << i << "]: " << sym.name << ", mut=" << sym.isMut << "\n";
+            std::cout << "Symbol[" << i << "]: " << sym.name << ", mut=" << sym.isMut() << "\n";
         }
     }
 

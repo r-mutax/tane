@@ -26,7 +26,7 @@ std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& filepath)
     ts.expect(TokenKind::Num);  // version number
 
     ts.expect(TokenKind::Module);
-    TokenIdx moduleIdent = ts.expectIdent();
+    ts.expectIdent();
 
     while(!ts.consume(TokenKind::End)){
         ts.expect(TokenKind::Fn);
@@ -37,7 +37,7 @@ std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& filepath)
         Token fnToken = ts.getToken(fnIdent);
         fnSym.name = std::string(fnToken.pos, fnToken.len);
         fnSym.kind = SymbolKind::Function;
-        fnSym.isMut = false;
+        fnSym.setMut(false);
 
         if(!ts.peekKind(TokenKind::RParen)){
             do {
@@ -47,7 +47,7 @@ std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& filepath)
                 Symbol paramSym;
                 paramSym.name = std::string(pToken.pos, pToken.len);
                 paramSym.kind = SymbolKind::Variable;
-                paramSym.isMut = false;
+                paramSym.setMut(false);
 
                 SymbolIdx paramIdx = static_cast<SymbolIdx>(symbols.size());
                 symbols.push_back(paramSym);
@@ -55,6 +55,7 @@ std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& filepath)
             } while(ts.consume(TokenKind::Comma));
         }
         ts.expect(TokenKind::RParen);
+        ts.expect(TokenKind::Semicolon);
 
         symbols.push_back(fnSym);
     }

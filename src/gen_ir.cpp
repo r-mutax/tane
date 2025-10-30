@@ -54,7 +54,8 @@ void IRGenerator::bindFunc(ASTIdx idx){
 
     Symbol sym;
     sym.name = node.name;
-    sym.isMut = false; // functions are not mutable
+    sym.setPub(node.isPub());
+    sym.setMut(false); // functions are not mutable
     sym.kind = SymbolKind::Function;
 
     module.currentStackSize = 0;
@@ -66,7 +67,7 @@ void IRGenerator::bindFunc(ASTIdx idx){
         ASTNode paramNode = ps.getAST(paramIdx);
         Symbol paramSym;
         paramSym.name = paramNode.name;
-        paramSym.isMut = true;
+        paramSym.setMut(true);
         paramSym.kind = SymbolKind::Variable;
         SymbolIdx symidx = module.insertSymbol(paramSym);
         paramSyms.push_back(symidx);
@@ -117,7 +118,7 @@ void IRGenerator::bindStmt(ASTIdx idx){
         case ASTKind::VarDecl: {
             Symbol sym;
             sym.name = node.name;
-            sym.isMut = node.is_mut;
+            sym.setMut(node.isMut());
 
             module.insertSymbol(sym);
             break;

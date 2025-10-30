@@ -10,6 +10,7 @@ std::map<std::string, TokenKind> Tokenizer::keyword_map = {
     {"switch", TokenKind::Switch},
     {"fn", TokenKind::Fn},
     {"import", TokenKind::Import},
+    {"pub", TokenKind::Pub},
 };
 
 std::map<std::string, TokenKind> Tokenizer::tnlib_keyword_map = {
