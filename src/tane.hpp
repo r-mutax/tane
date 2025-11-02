@@ -17,29 +17,9 @@
 #include <optional>
 
 #include "tokenizer.h"
+#include "paths.h"
 
 typedef int32_t SymbolIdx;
-
-
-class ModulePath{
-    std::vector<std::string> tnlibDirs;
-public:
-    ModulePath() = default;
-    void addDirPath(const std::string& path){
-        tnlibDirs.push_back(path);
-    }
-    std::string resolve(const std::string& moduleName){
-        for(const auto& dir : tnlibDirs){
-            std::string fullPath = dir + "/" + moduleName + ".tnlib";
-            FILE* f = fopen(fullPath.c_str(), "r");
-            if(f != nullptr){
-                fclose(f);
-                return fullPath;
-            }
-        }
-        return "";
-    }
-};
 
 typedef int32_t ASTIdx;
 enum class ASTKind {
