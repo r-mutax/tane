@@ -135,12 +135,18 @@ void IRGenerator::bindStmt(ASTIdx idx){
 }
 
 void IRGenerator::bindExpr(ASTIdx idx){
-    ASTNode node = ps.getAST(idx);
+    ASTNode& node = ps.getAST(idx);
 
     switch(node.kind){
         case ASTKind::Num:
             // nothing to do
             return;
+        case ASTKind::StringLiteral:{
+            // nothing to do
+            int32_t strIdx = module.addString(node.str);
+            node.val = strIdx;
+            return;
+        }
         case ASTKind::Variable: {
             SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
             if(symIdx == -1){
@@ -323,6 +329,15 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
             {
                 return func.newVRegNum(node.val);
             }
+        case ASTKind::StringLiteral:{
+            VRegID vid = func.newVReg();
+            IRInstr instr;
+            instr.cmd = IRCmd::LEA_STRING;
+            instr.imm = node.val; // string literal index
+            instr.t = vid;
+            func.instrPool.push_back(instr);
+            return vid;
+        }
         case ASTKind::Variable:
         {
             SymbolIdx symIdx = module.astSymMap[idx];

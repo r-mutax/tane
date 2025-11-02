@@ -356,6 +356,15 @@ ASTIdx Parser::primary(){
         }
     }
 
+    if(ts.peekKind(TokenKind::StringLiteral)){
+        TokenIdx strIdx = ts.expectStringLiteral();
+        Token t = ts.getToken(strIdx);
+        ASTIdx n = newNode(ASTKind::StringLiteral, 0, 0);
+        ASTNode& node = getAST(n);
+        node.str = std::string(t.pos, t.len);
+        return n;
+    }
+
     if(ts.consume(TokenKind::Switch)){
         ASTIdx cond = expr();
 

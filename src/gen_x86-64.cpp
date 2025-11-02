@@ -2,13 +2,24 @@
 
 void X86Generator::emit(){
     out.print(".intel_syntax noprefix\n");
-    out.print(".text\n");
 
+    emitStringLiterals();
+
+    out.print(".text\n");
     for(auto& func : irm.funcPool){
         emitFunc(func);
     }
 }
 
+void X86Generator::emitStringLiterals(){
+    if(irm.stringLiterals.empty()) return;
+
+    for(auto& sld: irm.stringLiterals){
+        out.print(".section .rodata\n");
+        out.print(".LC{}:\n", sld.id);
+        out.print("  .string \"{}\"\n", sld.str);
+    }
+}
 void X86Generator::emitFunc(IRFunc& func){
     func.regAlloc.computeUse();
     
@@ -40,6 +51,11 @@ void X86Generator::emitFunc(IRFunc& func){
         }
         out.print("  mov [rbp - {}], {}\n", sym.stackOffset, regName(paramReg));
     }
+
+    out.print("  push r12\n");
+    out.print("  push r13\n");
+    out.print("  push r14\n");
+    out.print("  push r15\n");
 
     for(auto& instr : func.instrPool){
         func.regAlloc.expireAt(&instr - &func.instrPool[0]);
@@ -307,11 +323,22 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov {}, {}\n", regName(r), instr.imm);
                 break;
             }
+            case IRCmd::LEA_STRING:
+            {
+                PhysReg r = func.regAlloc.alloc(instr.t);
+                out.print("  lea {}, [rip + .LC{}]\n", regName(r), instr.imm);
+                break;
+            }
             default:
                 fprintf(stderr, "Unknown IR command in X86 generation: %d\n", (uint32_t)instr.cmd);
                 exit(1);
         }
     }
+
+    out.print("  pop r15\n");
+    out.print("  pop r14\n");
+    out.print("  pop r13\n");
+    out.print("  pop r12\n");
 
     out.print("ret_{}:\n", func.fname);
     out.print("  mov rsp, rbp\n");

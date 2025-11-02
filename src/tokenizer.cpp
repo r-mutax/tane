@@ -138,6 +138,23 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
             case ',':
                 ts.addToken(TokenKind::Comma, p++);
                 break;
+            case '"':
+                {
+                    char* q = p + 1;
+                    p++;
+                    while(*p != '"' && *p != 0){
+                        p++;
+                    }
+                    if(*p == 0){
+                        fprintf(stderr, "Unterminated string literal: %s\n", q - 1);
+                        exit(1);
+                    }
+                    ts.addToken(TokenKind::StringLiteral, q);
+                    ts.getTop().len = p - q;
+                    ts.getTop().str = std::string(q, p - q);
+                    p++; // skip closing "
+                }
+                break;
             default:
                 if(isdigit(c)){
                     char* q = p;
@@ -237,6 +254,20 @@ TokenIdx Tokenizer::TokenStream::expectIdent(){
     }
 
     if(tokens[idx].kind != TokenKind::Ident){
+        fprintf(stderr, "Unexpected token: %d\n", static_cast<int>(tokens[idx].kind));
+        exit(1);
+    }
+
+    return idx++;
+}
+
+TokenIdx Tokenizer::TokenStream::expectStringLiteral(){
+    if(idx >= tokens.size()){
+        fprintf(stderr, "Unexpected end of input\n");
+        exit(1);
+    }
+
+    if(tokens[idx].kind != TokenKind::StringLiteral){
         fprintf(stderr, "Unexpected token: %d\n", static_cast<int>(tokens[idx].kind));
         exit(1);
     }

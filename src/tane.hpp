@@ -55,6 +55,7 @@ enum class TokenKind {
     Import,      // "import"
     Pub,         // "pub"
     Ident,       // Identifier
+    StringLiteral, // String literal
     // =========== for tnlib ===========
     Tnlib,
     Module,
@@ -68,6 +69,7 @@ struct Token{
     int32_t val;
     char* pos;
     int32_t len;
+    std::string str;
 };
 
 typedef uint32_t TokenIdx;
@@ -96,6 +98,7 @@ public:
         void expect(TokenKind kind);
         int32_t expectNum();
         TokenIdx expectIdent();
+        TokenIdx expectStringLiteral();
         std::optional<TokenIdx> consumeIdent();
         bool peekKind(TokenKind kind, TokenIdx offset = 0){
             size_t i = static_cast<size_t>(idx) + static_cast<size_t>(offset);
@@ -173,6 +176,7 @@ enum class ASTKind {
     Case,
     FunctionCall,
     Import,
+    StringLiteral,
 };
 
 enum class ASTFlags : uint8_t {
@@ -214,6 +218,9 @@ struct ASTNode {
     
     // For VarDecl
     std::string name;
+
+    // For StringLiteral
+    std::string str;
 
     // For if statement
     ASTIdx cond;
@@ -367,6 +374,7 @@ enum class IRCmd {
     JNZ,
     JMP,            // unconditional jmp
     CALL,
+    LEA_STRING,
 };
 /*
     cond
@@ -579,11 +587,17 @@ struct FuncSem{
     std::vector<SymbolIdx> params;
 };
 
+struct StringLiteralData{
+    int32_t id;
+    std::string str;
+};
+
 class IRModule{
 public:
     std::vector<IRFunc> funcPool;
     std::vector<Scope> scopes;
     std::vector<Symbol> symbolPool;
+    std::vector<StringLiteralData> stringLiterals;
 
     std::unordered_map<ASTIdx, FuncSem> funcSem;
     std::unordered_map<ASTIdx, SymbolIdx> astSymMap;
@@ -635,6 +649,15 @@ public:
         if(curScope == globalScope){
             funcScope = -1;
         }
+    }
+
+    int32_t addString(std::string data){
+        int32_t id = stringLiterals.size();
+        StringLiteralData sld;
+        sld.id = id;
+        sld.str = data;
+        stringLiterals.push_back(sld);
+        return id;
     }
 
     SymbolIdx insertSymbol(const Symbol& sym){
@@ -827,6 +850,7 @@ class X86Generator{
     IRModule& irm;
     Output out;
     void emitFunc(IRFunc& func);
+    void emitStringLiterals();
 public:
     X86Generator(IRModule& irm_) : irm(irm_), out() {}
     void setOutputFile(const char* filename) {
