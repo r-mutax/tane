@@ -7,6 +7,7 @@ void printUsage(const char* progName) {
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -c <code>     : Compile code string directly\n");
     fprintf(stderr, "  -o <output.s> : Output assembly file (default: out.s)\n");
+    fprintf(stderr, "  -i <tnlibdir>: Specify tnlib directory\n");
     fprintf(stderr, "Examples:\n");
     fprintf(stderr, "  %s source.tn              # Compile file\n", progName);
     fprintf(stderr, "  %s -c \"fn main() {...}\"   # Compile string\n", progName);
@@ -24,6 +25,17 @@ std::string readFile(const char* filename) {
     return buffer.str();
 }
 
+std::string getModuleName(const char* filepath) {
+    std::string pathStr(filepath);
+    size_t lastSlash = pathStr.find_last_of("/\\");
+    size_t lastDot = pathStr.find_last_of('.');
+    if (lastDot == std::string::npos || (lastSlash != std::string::npos && lastDot < lastSlash)) {
+        lastDot = pathStr.length();
+    }
+    size_t start = (lastSlash == std::string::npos) ? 0 : lastSlash + 1;
+    return pathStr.substr(start, lastDot - start);
+}
+
 int main(int argc, char** argv) {
     if(argc < 2){
         printUsage(argv[0]);
@@ -33,6 +45,10 @@ int main(int argc, char** argv) {
     const char* inputFile = nullptr;
     const char* codeString = nullptr;
     const char* outputFile = "out.s";
+
+    ModulePath modulePath;
+    modulePath.addDirPath("."); // current directory
+    modulePath.addDirPath("/workspaces/tane/std/lib");
 
     // Parse arguments
     for(int i = 1; i < argc; i++){
@@ -50,6 +66,13 @@ int main(int argc, char** argv) {
                 return 1;
             }
             codeString = argv[++i];
+        } else if(strcmp(argv[i], "-i") == 0){
+            if(i + 1 >= argc){
+                fprintf(stderr, "Error: -i requires an argument\n");
+                printUsage(argv[0]);
+                return 1;
+            }
+            modulePath.addDirPath(argv[++i]);
         } else if(argv[i][0] == '-'){
             fprintf(stderr, "Error: Unknown option '%s'\n", argv[i]);
             printUsage(argv[0]);
@@ -94,8 +117,17 @@ int main(int argc, char** argv) {
     ASTIdx root = parser.parseFile();
 
     // Generate IR
-    IRGenerator irgen(root, parser);
+    IRGenerator irgen(root, parser, modulePath);
     IRModule& mod = irgen.run();
+
+    // get module name
+    std::string moduleName;
+    if(inputFile != nullptr){
+        moduleName = getModuleName(inputFile);
+    } else {
+        moduleName = "module";
+    }
+    mod.outputSymbols(moduleName);
 
     // Generate assembly
     X86Generator x86gen(mod);

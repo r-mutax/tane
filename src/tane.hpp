@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <format>
 #include <string_view>
@@ -51,7 +52,15 @@ enum class TokenKind {
     While,       // "while"
     Switch,      // "switch"
     Fn,          // "fn"
+    Import,      // "import"
+    Pub,         // "pub"
     Ident,       // Identifier
+    StringLiteral, // String literal
+    // =========== for tnlib ===========
+    Tnlib,
+    Module,
+    End,         // "end"
+    // =========== end of tnlib ===========
     Eof,
 };
 
@@ -60,6 +69,7 @@ struct Token{
     int32_t val;
     char* pos;
     int32_t len;
+    std::string str;
 };
 
 typedef uint32_t TokenIdx;
@@ -88,6 +98,7 @@ public:
         void expect(TokenKind kind);
         int32_t expectNum();
         TokenIdx expectIdent();
+        TokenIdx expectStringLiteral();
         std::optional<TokenIdx> consumeIdent();
         bool peekKind(TokenKind kind, TokenIdx offset = 0){
             size_t i = static_cast<size_t>(idx) + static_cast<size_t>(offset);
@@ -96,12 +107,15 @@ public:
         }
     };
     TokenStream& scan(char* p);
-    Tokenizer();
-    void printTokens();
+    Tokenizer(bool for_tnlib = false) : for_tnlib(for_tnlib) {}
+    bool for_tnlib;
+    void printTokens(TokenStream& ts);
 private:
-    std::map<std::string, TokenKind> keyword_map;
-    TokenStream ts;
+    static std::map<std::string, TokenKind> keyword_map;
+    static std::map<std::string, TokenKind> tnlib_keyword_map;
+    //TokenStream ts;
     TokenKind checkKeyword(char* start, uint32_t len);
+    TokenKind checkKeywordTnlib(char* start, uint32_t len);
     bool is_ident1(char c);
     bool is_ident2(char c);
     void printTokenKind(TokenKind kind);
@@ -109,6 +123,26 @@ private:
 
 Token* tokenize(char* p);
 void print_tokens(Token* token);
+
+class ModulePath{
+    std::vector<std::string> tnlibDirs;
+public:
+    ModulePath() = default;
+    void addDirPath(const std::string& path){
+        tnlibDirs.push_back(path);
+    }
+    std::string resolve(const std::string& moduleName){
+        for(const auto& dir : tnlibDirs){
+            std::string fullPath = dir + "/" + moduleName + ".tnlib";
+            FILE* f = fopen(fullPath.c_str(), "r");
+            if(f != nullptr){
+                fclose(f);
+                return fullPath;
+            }
+        }
+        return "";
+    }
+};
 
 typedef int32_t ASTIdx;
 enum class ASTKind {
@@ -141,22 +175,52 @@ enum class ASTKind {
     Switch,
     Case,
     FunctionCall,
+    Import,
+    StringLiteral,
 };
+
+enum class ASTFlags : uint8_t {
+    None = 0,
+    Mutable = 1 << 0,
+    Public = 1 << 1,
+};
+
+inline ASTFlags operator|(ASTFlags a, ASTFlags b) {
+    return static_cast<ASTFlags>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
+inline ASTFlags operator&(ASTFlags a, ASTFlags b) {
+    return static_cast<ASTFlags>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+
+inline bool hasFlag(ASTFlags flags, ASTFlags flag) {
+    return (flags & flag) != ASTFlags::None;
+}
 
 struct ASTNode {
     ASTKind kind;
     ASTIdx lhs;
     ASTIdx rhs;
 
+    ASTFlags flags = ASTFlags::None;
+
     // For Num
     int32_t val;
 
     // For CompoundStmt or Function
     std::vector<ASTIdx> body;
+
+    // For Function
+    std::vector<ASTIdx> params;
+
+    // For FunctionCall
+    std::vector<ASTIdx> args;
     
     // For VarDecl
     std::string name;
-    bool is_mut;
+
+    // For StringLiteral
+    std::string str;
 
     // For if statement
     ASTIdx cond;
@@ -164,6 +228,27 @@ struct ASTNode {
     ASTIdx elseBr;
 
     SymbolIdx symIdx;
+
+    bool isMut() const {
+        return hasFlag(flags, ASTFlags::Mutable);
+    }
+    bool isPub() const {
+        return hasFlag(flags, ASTFlags::Public);
+    }
+    void setMut(bool is_mut) {
+        if(is_mut) {
+            flags = flags | ASTFlags::Mutable;
+        } else {
+            flags = static_cast<ASTFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(ASTFlags::Mutable));
+        }
+    }
+    void setPub(bool is_pub) {
+        if(is_pub) {
+            flags = flags | ASTFlags::Public;
+        } else {
+            flags = static_cast<ASTFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(ASTFlags::Public));
+        }
+    }
 };
 
 class Parser{
@@ -175,7 +260,7 @@ public:
 private:
     Tokenizer::TokenStream& ts;
     std::vector<ASTNode> nodes;
-    ASTIdx functionDef();
+    ASTIdx functionDef(bool is_pub = false);
     ASTIdx compoundStmt();
     ASTIdx stmt();
     ASTIdx expr();
@@ -200,7 +285,7 @@ private:
     void printAST(const ASTNode& node, int32_t depth = 0) const;
 };
 
-enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX };
+enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX, RDI, RSI, RDX, RCX, R8, R9 };
 enum class VRegKind : uint8_t { Temp, Imm, LVarAddr };
 typedef int32_t VRegID;
 class VReg{
@@ -209,16 +294,55 @@ public:
     int32_t val;
     PhysReg assigned = PhysReg::None;
 };
-
 enum class SymbolKind : uint8_t { Variable, Function };
+
+// Symbol のフラグ
+enum class SymbolFlags : uint8_t {
+    None     = 0,
+    Mutable  = 1 << 0,  // let mut
+    Public   = 1 << 1,  // pub fn
+    External = 1 << 2,  // import された関数
+};
+
+inline SymbolFlags operator|(SymbolFlags a, SymbolFlags b) {
+    return static_cast<SymbolFlags>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
+inline SymbolFlags operator&(SymbolFlags a, SymbolFlags b) {
+    return static_cast<SymbolFlags>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+
+inline bool hasFlag(SymbolFlags flags, SymbolFlags flag) {
+    return (flags & flag) != SymbolFlags::None;
+}
 
 class Symbol{
 public:
     SymbolKind kind = SymbolKind::Variable;
     std::string name;
     TokenIdx tokenIdx;
-    bool isMut;
+    SymbolFlags flags = SymbolFlags::None;
     uint32_t stackOffset = 0;
+    std::vector<SymbolIdx> params;
+    
+    // ヘルパーメソッド
+    bool isMut() const { return hasFlag(flags, SymbolFlags::Mutable); }
+    bool isPub() const { return hasFlag(flags, SymbolFlags::Public); }
+    
+    void setMut(bool is_mut) {
+        if(is_mut) {
+            flags = flags | SymbolFlags::Mutable;
+        } else {
+            flags = static_cast<SymbolFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(SymbolFlags::Mutable));
+        }
+    }
+    void setPub(bool is_pub) {
+        if(is_pub) {
+            flags = flags | SymbolFlags::Public;
+        } else {
+            flags = static_cast<SymbolFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(SymbolFlags::Public));
+        }
+    }
 };
 
 
@@ -250,6 +374,7 @@ enum class IRCmd {
     JNZ,
     JMP,            // unconditional jmp
     CALL,
+    LEA_STRING,
 };
 /*
     cond
@@ -268,6 +393,7 @@ public:
     VRegID s2 = -1;
     VRegID t = -1;
     int32_t imm = 0;
+    std::vector<VRegID> args;
 };
 
 
@@ -280,6 +406,12 @@ inline const char* regName(PhysReg r) {
         case PhysReg::R14: return "r14";
         case PhysReg::R15: return "r15";
         case PhysReg::RAX: return "rax";
+        case PhysReg::RDI: return "rdi";
+        case PhysReg::RSI: return "rsi";
+        case PhysReg::RDX: return "rdx";
+        case PhysReg::RCX: return "rcx";
+        case PhysReg::R8:  return "r8";
+        case PhysReg::R9:  return "r9";
         default: return "none";
     }
 }
@@ -293,6 +425,12 @@ inline const char* regName8(PhysReg r) {
         case PhysReg::R14: return "r14b";
         case PhysReg::R15: return "r15b";
         case PhysReg::RAX: return "al";
+        case PhysReg::RDI: return "dil";
+        case PhysReg::RSI: return "sil";
+        case PhysReg::RDX: return "dl";
+        case PhysReg::RCX: return "cl";
+        case PhysReg::R8:  return "r8b";
+        case PhysReg::R9:  return "r9b";
         default: return "none";
     }
 }
@@ -303,6 +441,7 @@ class IRFunc{
     friend class RegAlloc;
     std::vector<IRInstr> instrPool;
     std::vector<VReg> vregs;
+    std::vector<SymbolIdx> params;
     int32_t labelCounter = 0;
 
     class RegAlloc{
@@ -326,6 +465,9 @@ class IRFunc{
                 mark(ins.s1);
                 mark(ins.s2);
                 mark(ins.t);
+                for(auto arg : ins.args){
+                    mark(arg);
+                }
             }
         }
         void expireAt(size_t pos){
@@ -442,6 +584,12 @@ public:
 
 struct FuncSem{
     uint32_t localBytes{0};
+    std::vector<SymbolIdx> params;
+};
+
+struct StringLiteralData{
+    int32_t id;
+    std::string str;
 };
 
 class IRModule{
@@ -449,6 +597,7 @@ public:
     std::vector<IRFunc> funcPool;
     std::vector<Scope> scopes;
     std::vector<Symbol> symbolPool;
+    std::vector<StringLiteralData> stringLiterals;
 
     std::unordered_map<ASTIdx, FuncSem> funcSem;
     std::unordered_map<ASTIdx, SymbolIdx> astSymMap;
@@ -502,6 +651,15 @@ public:
         }
     }
 
+    int32_t addString(std::string data){
+        int32_t id = stringLiterals.size();
+        StringLiteralData sld;
+        sld.id = id;
+        sld.str = data;
+        stringLiterals.push_back(sld);
+        return id;
+    }
+
     SymbolIdx insertSymbol(const Symbol& sym){
         // check duplication
         Scope& sc = scopes[curScope];
@@ -532,19 +690,66 @@ public:
         return symbolPool[idx];
     }
 
+    void outputSymbols(std::string module){
+        FILE *fp;
+        std::string filename = module + ".tnlib";
+        fp = fopen(filename.c_str(), "w");
+        if(!fp){
+            fprintf(stderr, "Cannot open file: %s\n", filename.c_str());
+            exit(1);
+        }
+
+        fprintf(fp, "tnlib 1\n");
+        fprintf(fp, "module %s\n", module.c_str());
+        for(size_t i = 0; i < symbolPool.size(); i++){
+            const auto& sym = symbolPool[i];
+            if(sym.isPub() == false){
+                continue; // skip non-public symbols
+            }
+            if(sym.kind == SymbolKind::Function){
+                fprintf(fp, "fn %s(", sym.name.c_str());
+                for(size_t j = 0; j < sym.params.size(); j++){
+                    const auto& paramSym = getSymbol(sym.params[j]);
+                    fprintf(fp, "%s", paramSym.name.c_str());
+                    if(j + 1 < sym.params.size()){
+                        fprintf(fp, ", ");  
+                    }
+                }
+                fprintf(fp, ");\n");
+            }
+        }
+        fprintf(fp, "end\n");
+        fclose(fp);
+    }
+
     void printSymbols(){
         for(size_t i = 0; i < symbolPool.size(); i++){
             const auto& sym = symbolPool[i];
-            std::cout << "Symbol[" << i << "]: " << sym.name << ", mut=" << sym.isMut << "\n";
+            std::cout << "Symbol[" << i << "]: " << sym.name << ", mut=" << sym.isMut() << "\n";
         }
     }
 
+};
+
+class TnlibLoader
+{
+    // loaded module paths
+    std::unordered_set<std::string> loadedModules;
+
+    // module path resolver
+    ModulePath modulePath;
+
+    std::string readfile(const std::string& filepath);
+public:
+    TnlibLoader(ModulePath& mPath) : modulePath(mPath) {};
+    std::vector<Symbol> loadTnlib(const std::string& filepath);
 };
 
 class IRGenerator{
 private:
     IRFunc func;
     void bindTU(ASTIdx idx);
+    void bindImport(ASTIdx idx);
     void bindFunc(ASTIdx idx);
     void bindStmt(ASTIdx idx);
     void bindExpr(ASTIdx idx);
@@ -556,8 +761,8 @@ private:
 public:
     Parser& ps;
     ASTIdx root;
-    IRGenerator(ASTIdx idx, Parser& parser) : ps(parser), root(idx) {
-        
+    TnlibLoader tnlibLoader;
+        IRGenerator(ASTIdx idx, Parser& parser, ModulePath& mPath) : ps(parser), root(idx), tnlibLoader(mPath) {
         module.scopes.push_back(Scope(-1));
         module.curScope = module.scopes.size() - 1;
         module.globalScope = module.scopes.size() - 1;
@@ -645,6 +850,7 @@ class X86Generator{
     IRModule& irm;
     Output out;
     void emitFunc(IRFunc& func);
+    void emitStringLiterals();
 public:
     X86Generator(IRModule& irm_) : irm(irm_), out() {}
     void setOutputFile(const char* filename) {

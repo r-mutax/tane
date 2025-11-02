@@ -8,8 +8,16 @@ IRModule& IRGenerator::run(){
 
     // generation of main function
     ASTNode rootNode = ps.getAST(root);
-    for(auto stmtIdx : rootNode.body){
-        module.funcPool.push_back(genFunc(stmtIdx));
+    for(auto astIdx : rootNode.body){
+        ASTNode& astNode = ps.getAST(astIdx);
+        if(astNode.kind == ASTKind::Import){
+            // Ignore imports during code generation
+        } else if(astNode.kind == ASTKind::Function){
+            module.funcPool.push_back(genFunc(astIdx));
+        } else {
+            fprintf(stderr, "Unexpected AST node in TranslationUnit during IR generation\n");
+            exit(1);
+        }
     }
 
     return module;
@@ -18,8 +26,26 @@ IRModule& IRGenerator::run(){
 void IRGenerator::bindTU(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
 
-    for(auto funcIdx : node.body){
-        bindFunc(funcIdx);
+    for(auto topIdx : node.body){
+        ASTNode topNode = ps.getAST(topIdx);
+        if(topNode.kind == ASTKind::Import){
+            bindImport(topIdx);
+        } else if(topNode.kind == ASTKind::Function){
+            bindFunc(topIdx);
+        } else {
+            fprintf(stderr, "Unexpected AST node in TranslationUnit\n");
+            exit(1);
+        }
+    }
+}
+
+void IRGenerator::bindImport(ASTIdx idx){
+    ASTNode node = ps.getAST(idx);
+    std::string moduleName = node.name;
+
+    auto symbols = tnlibLoader.loadTnlib(moduleName);
+    for(auto& sym : symbols){
+        module.insertSymbol(sym);
     }
 }
 
@@ -28,14 +54,32 @@ void IRGenerator::bindFunc(ASTIdx idx){
 
     Symbol sym;
     sym.name = node.name;
-    sym.isMut = false; // functions are not mutable
+    sym.setPub(node.isPub());
+    sym.setMut(false); // functions are not mutable
     sym.kind = SymbolKind::Function;
-    module.insertSymbol(sym);
 
     module.currentStackSize = 0;
     module.scopeIn();
+
+    // Add function parameters to symbol table
+    std::vector<SymbolIdx> paramSyms;
+    for(auto paramIdx : node.params){
+        ASTNode paramNode = ps.getAST(paramIdx);
+        Symbol paramSym;
+        paramSym.name = paramNode.name;
+        paramSym.setMut(true);
+        paramSym.kind = SymbolKind::Variable;
+        SymbolIdx symidx = module.insertSymbol(paramSym);
+        paramSyms.push_back(symidx);
+    }
+    FuncSem& fs = module.funcSem[idx];
+    fs.params = paramSyms;
+
     bindStmt(node.body[0]);  // function body
     module.scopeOut();
+
+    sym.params = paramSyms;
+    module.insertSymbol(sym);
 
     module.funcSem[idx].localBytes = module.currentStackSize;
 }
@@ -74,7 +118,7 @@ void IRGenerator::bindStmt(ASTIdx idx){
         case ASTKind::VarDecl: {
             Symbol sym;
             sym.name = node.name;
-            sym.isMut = node.is_mut;
+            sym.setMut(node.isMut());
 
             module.insertSymbol(sym);
             break;
@@ -91,12 +135,18 @@ void IRGenerator::bindStmt(ASTIdx idx){
 }
 
 void IRGenerator::bindExpr(ASTIdx idx){
-    ASTNode node = ps.getAST(idx);
+    ASTNode& node = ps.getAST(idx);
 
     switch(node.kind){
         case ASTKind::Num:
             // nothing to do
-            break;
+            return;
+        case ASTKind::StringLiteral:{
+            // nothing to do
+            int32_t strIdx = module.addString(node.str);
+            node.val = strIdx;
+            return;
+        }
         case ASTKind::Variable: {
             SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
             if(symIdx == -1){
@@ -104,7 +154,7 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 exit(1);
             }
             module.astSymMap[idx] = symIdx;
-            break;
+            return;
         }
         case ASTKind::FunctionCall:{
             SymbolIdx symIdx = module.findSymbol(node.name, module.curScope);
@@ -113,7 +163,10 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 exit(1);
             }
             module.astSymMap[idx] = symIdx;
-            break;
+            for(auto argIdx : node.args){
+                bindExpr(argIdx);
+            }
+            return;
         }
         case ASTKind::Switch: {
             bindExpr(node.cond);
@@ -125,11 +178,16 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 bindExpr(caseNode.rhs);
                 module.scopeOut();
             }
-            break;
+            return;
         }
         default:
             break;
     }
+
+    if(node.lhs != -1)
+        bindExpr(node.lhs);
+    if(node.rhs != -1)
+        bindExpr(node.rhs);
 }
 
 IRFunc IRGenerator::genFunc(ASTIdx idx){
@@ -140,6 +198,8 @@ IRFunc IRGenerator::genFunc(ASTIdx idx){
 
     FuncSem fs = module.funcSem[idx];
     func.localStackSize = fs.localBytes;
+    func.params.clear();
+    func.params = fs.params;        
 
     genStmt(node.body[0]);  // function body
 
@@ -259,8 +319,8 @@ void IRGenerator::genStmt(ASTIdx idx){
             break;        
         }
         default:
-            fprintf(stderr, "Unknown AST node kind: %d\n", (uint32_t)node.kind);
-            exit(1);
+            genExpr(idx);
+            break;
     }
 }
 
@@ -272,6 +332,15 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
             {
                 return func.newVRegNum(node.val);
             }
+        case ASTKind::StringLiteral:{
+            VRegID vid = func.newVReg();
+            IRInstr instr;
+            instr.cmd = IRCmd::LEA_STRING;
+            instr.imm = node.val; // string literal index
+            instr.t = vid;
+            func.instrPool.push_back(instr);
+            return vid;
+        }
         case ASTKind::Variable:
         {
             SymbolIdx symIdx = module.astSymMap[idx];
@@ -282,14 +351,19 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
         case ASTKind::FunctionCall:
         {
             SymbolIdx symIdx = module.astSymMap[idx];
-            Symbol& sym = module.getSymbol(symIdx);
 
-            // currently no argument support
             VRegID retVid = func.newVReg();
             IRInstr instr;
             instr.cmd = IRCmd::CALL;
             instr.imm = symIdx; // function symbol index
             instr.t = retVid;
+
+            // prepare arguments
+            for(size_t i = 0; i < node.args.size(); i++){
+                VRegID argVid = genExpr(node.args[i]);
+                instr.args.push_back(argVid);
+            }
+
             func.instrPool.push_back(instr);
 
             return retVid;

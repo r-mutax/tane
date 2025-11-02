@@ -1,6 +1,27 @@
 #include "tane.hpp"
 
+std::map<std::string, TokenKind> Tokenizer::keyword_map = {
+    {"return", TokenKind::Return},
+    {"let", TokenKind::Let},
+    {"mut", TokenKind::Mut},
+    {"if", TokenKind::If},
+    {"else", TokenKind::Else},
+    {"while", TokenKind::While},
+    {"switch", TokenKind::Switch},
+    {"fn", TokenKind::Fn},
+    {"import", TokenKind::Import},
+    {"pub", TokenKind::Pub},
+};
+
+std::map<std::string, TokenKind> Tokenizer::tnlib_keyword_map = {
+    {"tnlib", TokenKind::Tnlib},
+    {"module", TokenKind::Module},
+    {"fn", TokenKind::Fn},
+    {"end", TokenKind::End},
+};  
+
 Tokenizer::TokenStream& Tokenizer::scan(char* p){
+    TokenStream& ts = *(new TokenStream());
     ts.clear();
 
     bool continue_flg = true;
@@ -117,6 +138,23 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
             case ',':
                 ts.addToken(TokenKind::Comma, p++);
                 break;
+            case '"':
+                {
+                    char* q = p + 1;
+                    p++;
+                    while(*p != '"' && *p != 0){
+                        p++;
+                    }
+                    if(*p == 0){
+                        fprintf(stderr, "Unterminated string literal: %s\n", q - 1);
+                        exit(1);
+                    }
+                    ts.addToken(TokenKind::StringLiteral, q);
+                    ts.getTop().len = p - q;
+                    ts.getTop().str = std::string(q, p - q);
+                    p++; // skip closing "
+                }
+                break;
             default:
                 if(isdigit(c)){
                     char* q = p;
@@ -143,12 +181,21 @@ Tokenizer::TokenStream& Tokenizer::scan(char* p){
 }
 
 TokenKind Tokenizer::checkKeyword(char* start, uint32_t len){
-    if(keyword_map.find(std::string(start, len)) != keyword_map.end()){
-        return keyword_map[std::string(start, len)];
-    }
 
-    // Not a keyword, so it must be an identifier
-    return TokenKind::Ident;
+    if(for_tnlib){
+        if(tnlib_keyword_map.find(std::string(start, len)) != tnlib_keyword_map.end()){
+            return tnlib_keyword_map[std::string(start, len)];
+        }
+
+        // Not a keyword, so it must be an identifier
+        return TokenKind::Ident;
+    } else {
+        if(keyword_map.find(std::string(start, len)) != keyword_map.end()){
+            return keyword_map[std::string(start, len)];
+        }
+        // Not a keyword, so it must be an identifier
+        return TokenKind::Ident;
+    }
 }
 
 bool Tokenizer::is_ident1(char c){
@@ -157,18 +204,6 @@ bool Tokenizer::is_ident1(char c){
 
 bool Tokenizer::is_ident2(char c){
     return is_ident1(c) || isdigit(c);
-}
-
-Tokenizer::Tokenizer(){
-    // Initialize keyword map
-    keyword_map["return"] = TokenKind::Return;
-    keyword_map["let"] = TokenKind::Let;
-    keyword_map["mut"] = TokenKind::Mut;
-    keyword_map["if"] = TokenKind::If;
-    keyword_map["else"] = TokenKind::Else;
-    keyword_map["while"] = TokenKind::While;
-    keyword_map["switch"] = TokenKind::Switch;
-    keyword_map["fn"] = TokenKind::Fn;
 }
 
 bool Tokenizer::TokenStream::consume(TokenKind kind){
@@ -226,6 +261,20 @@ TokenIdx Tokenizer::TokenStream::expectIdent(){
     return idx++;
 }
 
+TokenIdx Tokenizer::TokenStream::expectStringLiteral(){
+    if(idx >= tokens.size()){
+        fprintf(stderr, "Unexpected end of input\n");
+        exit(1);
+    }
+
+    if(tokens[idx].kind != TokenKind::StringLiteral){
+        fprintf(stderr, "Unexpected token: %d\n", static_cast<int>(tokens[idx].kind));
+        exit(1);
+    }
+
+    return idx++;
+}
+
 std::optional<TokenIdx> Tokenizer::TokenStream::consumeIdent(){
     if(idx >= tokens.size()){
         return std::nullopt;
@@ -240,7 +289,7 @@ std::optional<TokenIdx> Tokenizer::TokenStream::consumeIdent(){
 // For debugging
 
 /// Print the tokens in the linked list
-void Tokenizer::printTokens(){
+void Tokenizer::printTokens(TokenStream& ts){
     for(auto it : ts.tokens) {
         printTokenKind(it.kind); 
         printf("\n");

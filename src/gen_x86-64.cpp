@@ -2,13 +2,24 @@
 
 void X86Generator::emit(){
     out.print(".intel_syntax noprefix\n");
-    out.print(".text\n");
 
+    emitStringLiterals();
+
+    out.print(".text\n");
     for(auto& func : irm.funcPool){
         emitFunc(func);
     }
 }
 
+void X86Generator::emitStringLiterals(){
+    if(irm.stringLiterals.empty()) return;
+
+    for(auto& sld: irm.stringLiterals){
+        out.print(".section .rodata\n");
+        out.print(".LC{}:\n", sld.id);
+        out.print("  .string \"{}\"\n", sld.str);
+    }
+}
 void X86Generator::emitFunc(IRFunc& func){
     func.regAlloc.computeUse();
     
@@ -16,7 +27,36 @@ void X86Generator::emitFunc(IRFunc& func){
     out.print("{}:\n", func.fname);
     out.print("  push rbp\n");
     out.print("  mov rbp, rsp\n");
-    out.print("  sub rsp, {}\n", func.localStackSize);
+    // Ensure 16-byte alignment for the stack within this function.
+    // At function entry (after the caller's call), rsp is 8 bytes off 16.
+    // push rbp -> rsp becomes 16-byte aligned. Keep it aligned by subtracting
+    // a multiple of 16 here so that before emitting any call, rsp stays 16-aligned.
+    uint32_t alignedLocal = (func.localStackSize + 15) & ~15u; // round up to 16
+    out.print("  sub rsp, {}\n", alignedLocal);
+
+    for(size_t i = 0; i < func.params.size(); i++){
+        SymbolIdx symIdx = func.params[i];
+        Symbol& sym = irm.getSymbol(symIdx);
+        PhysReg paramReg;
+        switch(i){
+            case 0: paramReg = PhysReg::RDI; break;
+            case 1: paramReg = PhysReg::RSI; break;
+            case 2: paramReg = PhysReg::RDX; break;
+            case 3: paramReg = PhysReg::RCX; break;
+            case 4: paramReg = PhysReg::R8;  break;
+            case 5: paramReg = PhysReg::R9;  break;
+            default:
+                fprintf(stderr, "More than 6 parameters not supported.\n");
+                exit(1);
+        }
+        out.print("  mov [rbp - {}], {}\n", sym.stackOffset, regName(paramReg));
+    }
+
+    out.print("  push r12\n");
+    out.print("  push r13\n");
+    out.print("  push r14\n");
+    out.print("  push r15\n");
+
     for(auto& instr : func.instrPool){
         func.regAlloc.expireAt(&instr - &func.instrPool[0]);
         switch(instr.cmd){
@@ -252,6 +292,19 @@ void X86Generator::emitFunc(IRFunc& func){
             }
             case IRCmd::CALL:
             {
+
+                for (size_t i = 0; i < instr.args.size(); i++) {
+                    PhysReg rArg = func.regAlloc.alloc(instr.args[i]);
+                    static const char* argRegs[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+                    if (i < 6) {
+                        out.print("  mov {}, {}\n", argRegs[i], regName(rArg));
+                    } else {
+                        // For simplicity, we won't handle more than 6 arguments here.
+                        fprintf(stderr, "Error: More than 6 function arguments not supported in X86 generation.\n");
+                        exit(1);
+                    }
+                }
+
                 PhysReg r = func.regAlloc.alloc(instr.t);
                 out.print("  call {}\n", irm.getSymbol(instr.imm).name);
                 out.print("  mov {}, rax\n", regName(r));
@@ -270,11 +323,22 @@ void X86Generator::emitFunc(IRFunc& func){
                 out.print("  mov {}, {}\n", regName(r), instr.imm);
                 break;
             }
+            case IRCmd::LEA_STRING:
+            {
+                PhysReg r = func.regAlloc.alloc(instr.t);
+                out.print("  lea {}, [rip + .LC{}]\n", regName(r), instr.imm);
+                break;
+            }
             default:
                 fprintf(stderr, "Unknown IR command in X86 generation: %d\n", (uint32_t)instr.cmd);
                 exit(1);
         }
     }
+
+    out.print("  pop r15\n");
+    out.print("  pop r14\n");
+    out.print("  pop r13\n");
+    out.print("  pop r12\n");
 
     out.print("ret_{}:\n", func.fname);
     out.print("  mov rsp, rbp\n");

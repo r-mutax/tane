@@ -58,3 +58,6 @@ dkms.conf
 /build/
 /build/*
 out.s
+*.tnlib
+!std/lib/io.tnlib
+test/build/*

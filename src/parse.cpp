@@ -6,24 +6,53 @@ ASTIdx Parser::parseFile() {
     ASTIdx tu = newNode(ASTKind::TranslationUnit, 0, 0);
 
     while(!ts.peekKind(TokenKind::Eof)){
-        ASTIdx func = functionDef();
+        ASTIdx idx = -1;
+        bool is_pub = ts.consume(TokenKind::Pub);
 
+        if(ts.consume(TokenKind::Fn)){
+            idx = functionDef(is_pub);
+        } else if(ts.consume(TokenKind::Import)){
+            idx = newNode(ASTKind::Import, 0, 0);
+            ASTNode& importNode = getAST(idx);
+            TokenIdx ident = ts.expectIdent();
+            ts.expect(TokenKind::Semicolon);
+            Token t = ts.getToken(ident);
+            importNode.name = std::string(t.pos, t.len);
+        } else {
+            fprintf(stderr, "Unexpected token at top level\n");
+            exit(1);
+        }
         ASTNode& tuNode = getAST(tu);
-        tuNode.body.push_back(func);
+        tuNode.body.push_back(idx);
     }
 
     return tu;
 }
 
-ASTIdx Parser::functionDef(){
-    ts.expect(TokenKind::Fn);
+ASTIdx Parser::functionDef(bool is_pub){
 
     TokenIdx ident = ts.expectIdent();
     Token t = ts.getToken(ident);
     std::string fname(t.pos, t.len);
 
+    std::vector<ASTIdx> params;
+
     ts.expect(TokenKind::LParen);
-    ts.expect(TokenKind::RParen);
+    if(!ts.consume(TokenKind::RParen)){
+        do {
+            // get parameter name
+            TokenIdx paramIdent = ts.expectIdent();
+            Token pt = ts.getToken(paramIdent);
+            std::string pname(pt.pos, pt.len);
+
+            // create parameter node
+            ASTIdx paramNode = newNode(ASTKind::Variable, 0, 0);
+            ASTNode& pnode = getAST(paramNode);
+            pnode.name = pname;
+            params.push_back(paramNode);
+        } while(ts.consume(TokenKind::Comma));
+        ts.expect(TokenKind::RParen);
+    }
 
     ts.expect(TokenKind::LBrace);
     ASTIdx body = compoundStmt();
@@ -32,6 +61,8 @@ ASTIdx Parser::functionDef(){
     ASTNode& node = getAST(n);
     node.name = fname;
     node.body.push_back(body);
+    node.params = params;
+    node.setPub(is_pub);
     return n;
 }
 
@@ -101,7 +132,7 @@ ASTIdx Parser::stmt(){
 
         Token t = ts.getToken(ident);
         node.name = std::string(t.pos, t.len);
-        node.is_mut = is_mut;
+        node.setMut(is_mut);
         ts.expect(TokenKind::Semicolon);
         return n;
     } else if(ts.consume(TokenKind::LBrace)){
@@ -303,11 +334,19 @@ ASTIdx Parser::primary(){
         if(ts.peekKind(TokenKind::LParen)){
             // function call
             ts.expect(TokenKind::LParen);
+
+            std::vector<ASTIdx> args;
+            if(!ts.peekKind(TokenKind::RParen)){
+                do{
+                    args.push_back(expr());
+                } while(ts.consume(TokenKind::Comma));
+            }
             ts.expect(TokenKind::RParen);
 
             ASTIdx n = newNode(ASTKind::FunctionCall, 0, 0);
             ASTNode& node = getAST(n);
             node.name = std::string(t.pos, t.len);
+            node.args = std::move(args);
             return n;
         } else {
             ASTIdx n = newNode(ASTKind::Variable, 0, 0);
@@ -315,6 +354,15 @@ ASTIdx Parser::primary(){
             node.name = std::string(t.pos, t.len);
             return n;
         }
+    }
+
+    if(ts.peekKind(TokenKind::StringLiteral)){
+        TokenIdx strIdx = ts.expectStringLiteral();
+        Token t = ts.getToken(strIdx);
+        ASTIdx n = newNode(ASTKind::StringLiteral, 0, 0);
+        ASTNode& node = getAST(n);
+        node.str = std::string(t.pos, t.len);
+        return n;
     }
 
     if(ts.consume(TokenKind::Switch)){
