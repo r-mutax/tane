@@ -1,0 +1,4 @@
+tnlib 1
+module mod
+fn print(str);
+end

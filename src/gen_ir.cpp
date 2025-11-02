@@ -163,6 +163,9 @@ void IRGenerator::bindExpr(ASTIdx idx){
                 exit(1);
             }
             module.astSymMap[idx] = symIdx;
+            for(auto argIdx : node.args){
+                bindExpr(argIdx);
+            }
             return;
         }
         case ASTKind::Switch: {
@@ -316,8 +319,8 @@ void IRGenerator::genStmt(ASTIdx idx){
             break;        
         }
         default:
-            fprintf(stderr, "Unknown AST node kind: %d\n", (uint32_t)node.kind);
-            exit(1);
+            genExpr(idx);
+            break;
     }
 }
 

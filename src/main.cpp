@@ -48,7 +48,8 @@ int main(int argc, char** argv) {
 
     ModulePath modulePath;
     modulePath.addDirPath("."); // current directory
-    
+    modulePath.addDirPath("/workspaces/tane/std/lib");
+
     // Parse arguments
     for(int i = 1; i < argc; i++){
         if(strcmp(argv[i], "-o") == 0){
