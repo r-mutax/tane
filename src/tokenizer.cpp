@@ -206,6 +206,16 @@ bool Tokenizer::is_ident2(char c){
     return is_ident1(c) || isdigit(c);
 }
 
+// TokenStream member functions
+void Tokenizer::TokenStream::addToken(TokenKind kind, char* pos){
+    Token t;
+    t.kind = kind;
+    t.pos = pos;
+    t.len = 1;
+    t.val = 0;
+    tokens.push_back(t);
+}
+
 bool Tokenizer::TokenStream::consume(TokenKind kind){
     if(idx >= tokens.size()){
         return false;
@@ -285,6 +295,11 @@ std::optional<TokenIdx> Tokenizer::TokenStream::consumeIdent(){
     return idx++;
 }
 
+bool Tokenizer::TokenStream::peekKind(TokenKind kind, TokenIdx offset){
+    size_t i = static_cast<size_t>(idx) + static_cast<size_t>(offset);
+    if(i >= tokens.size()) return false;
+    return tokens[i].kind == kind;
+}
 
 // For debugging
 
