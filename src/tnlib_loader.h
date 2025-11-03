@@ -1,8 +1,9 @@
 #pragma once
 #include <unordered_set>
 #include <string>
+
 #include "paths.h"
-#include "gen_ir.h"
+#include "symbol.h"
 
 class TnlibLoader
 {

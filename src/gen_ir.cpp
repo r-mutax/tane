@@ -1,4 +1,4 @@
-#include "tane.hpp"
+#include "gen_ir.h"
 
 IRModule& IRGenerator::run(){
 
