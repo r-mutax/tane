@@ -1,4 +1,5 @@
-#include "tane.hpp"
+#include "tnlib_loader.h"
+#include "tokenizer.h"
 
 std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& filepath)
 {

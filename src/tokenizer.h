@@ -5,6 +5,8 @@
 #include <vector>
 #include <optional>
 
+#include "common_type.h"
+
 enum class TokenKind {
     Num,
     Add,         // +
