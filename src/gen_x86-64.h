@@ -9,7 +9,7 @@ class X86Generator{
     void emitStringLiterals();
 public:
     X86Generator(IRModule& irm_) : irm(irm_), out() {}
-    void setOutputFile(const char* filename) {
+    void setOutputFile(const std::string filename) {
         out.setFileContext(filename);
     }
     void emit();

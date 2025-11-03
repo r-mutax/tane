@@ -28,10 +28,10 @@ public:
 class FileContext : public OutputContext{
     FILE* fp;
 public:
-    FileContext(const char* filename) : fp(nullptr) {
-        fp = fopen(filename, "w");
+    FileContext(const std::string& filename) : fp(nullptr) {
+        fp = fopen(filename.c_str(), "w");
         if(!fp) {
-            fprintf(stderr, "Cannot open file: %s\n", filename);
+            fprintf(stderr, "Cannot open file: %s\n", filename.c_str());
             exit(1);
         }
     }
@@ -68,9 +68,9 @@ public:
     void flush() {
         ctx->flush();
     }
-    void setFileContext(const char* filename) {
+    void setFileContext(const std::string& filename) {
         delete ctx;
-        ctx = new FileContext(filename);
+        ctx = new FileContext(filename.c_str());
     }
     void setStdioContext() {
         delete ctx;
