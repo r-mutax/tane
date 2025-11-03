@@ -9,7 +9,6 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
-#include <unordered_set>
 #include <string>
 #include <format>
 #include <string_view>
@@ -20,67 +19,9 @@
 #include "tokenizer.h"
 #include "paths.h"
 #include "parse.h"
-
-enum class PhysReg : uint8_t { None, R10, R11, R12, R13, R14, R15, RAX, RDI, RSI, RDX, RCX, R8, R9 };
-enum class VRegKind : uint8_t { Temp, Imm, LVarAddr };
-typedef int32_t VRegID;
-class VReg{
-public:
-    VRegKind kind = VRegKind::Temp;
-    int32_t val;
-    PhysReg assigned = PhysReg::None;
-};
-enum class SymbolKind : uint8_t { Variable, Function };
-
-// Symbol のフラグ
-enum class SymbolFlags : uint8_t {
-    None     = 0,
-    Mutable  = 1 << 0,  // let mut
-    Public   = 1 << 1,  // pub fn
-    External = 1 << 2,  // import された関数
-};
-
-inline SymbolFlags operator|(SymbolFlags a, SymbolFlags b) {
-    return static_cast<SymbolFlags>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
-}
-
-inline SymbolFlags operator&(SymbolFlags a, SymbolFlags b) {
-    return static_cast<SymbolFlags>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
-}
-
-inline bool hasFlag(SymbolFlags flags, SymbolFlags flag) {
-    return (flags & flag) != SymbolFlags::None;
-}
-
-class Symbol{
-public:
-    SymbolKind kind = SymbolKind::Variable;
-    std::string name;
-    TokenIdx tokenIdx;
-    SymbolFlags flags = SymbolFlags::None;
-    uint32_t stackOffset = 0;
-    std::vector<SymbolIdx> params;
-    
-    // ヘルパーメソッド
-    bool isMut() const { return hasFlag(flags, SymbolFlags::Mutable); }
-    bool isPub() const { return hasFlag(flags, SymbolFlags::Public); }
-    
-    void setMut(bool is_mut) {
-        if(is_mut) {
-            flags = flags | SymbolFlags::Mutable;
-        } else {
-            flags = static_cast<SymbolFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(SymbolFlags::Mutable));
-        }
-    }
-    void setPub(bool is_pub) {
-        if(is_pub) {
-            flags = flags | SymbolFlags::Public;
-        } else {
-            flags = static_cast<SymbolFlags>(static_cast<uint8_t>(flags) & ~static_cast<uint8_t>(SymbolFlags::Public));
-        }
-    }
-};
-
+#include "gen_ir.h"
+#include "tnlib_loader.h"
+#include "context.h"
 
 enum class IRCmd {
     ADD,
@@ -112,15 +53,6 @@ enum class IRCmd {
     CALL,
     LEA_STRING,
 };
-/*
-    cond
-    jz cond .Llse
-    then
-    jmp .Lend
-    .Lelse
-    else
-    .Lend
-*/
 
 class IRInstr{
 public:
@@ -131,45 +63,6 @@ public:
     int32_t imm = 0;
     std::vector<VRegID> args;
 };
-
-
-inline const char* regName(PhysReg r) {
-    switch(r) {
-        case PhysReg::R10: return "r10";
-        case PhysReg::R11: return "r11";
-        case PhysReg::R12: return "r12";
-        case PhysReg::R13: return "r13";
-        case PhysReg::R14: return "r14";
-        case PhysReg::R15: return "r15";
-        case PhysReg::RAX: return "rax";
-        case PhysReg::RDI: return "rdi";
-        case PhysReg::RSI: return "rsi";
-        case PhysReg::RDX: return "rdx";
-        case PhysReg::RCX: return "rcx";
-        case PhysReg::R8:  return "r8";
-        case PhysReg::R9:  return "r9";
-        default: return "none";
-    }
-}
-
-inline const char* regName8(PhysReg r) {
-    switch(r) {
-        case PhysReg::R10: return "r10b";
-        case PhysReg::R11: return "r11b";
-        case PhysReg::R12: return "r12b";
-        case PhysReg::R13: return "r13b";
-        case PhysReg::R14: return "r14b";
-        case PhysReg::R15: return "r15b";
-        case PhysReg::RAX: return "al";
-        case PhysReg::RDI: return "dil";
-        case PhysReg::RSI: return "sil";
-        case PhysReg::RDX: return "dl";
-        case PhysReg::RCX: return "cl";
-        case PhysReg::R8:  return "r8b";
-        case PhysReg::R9:  return "r9b";
-        default: return "none";
-    }
-}
 
 class IRFunc{
     friend class IRGenerator;
@@ -467,20 +360,6 @@ public:
 
 };
 
-class TnlibLoader
-{
-    // loaded module paths
-    std::unordered_set<std::string> loadedModules;
-
-    // module path resolver
-    ModulePath modulePath;
-
-    std::string readfile(const std::string& filepath);
-public:
-    TnlibLoader(ModulePath& mPath) : modulePath(mPath) {};
-    std::vector<Symbol> loadTnlib(const std::string& filepath);
-};
-
 class IRGenerator{
 private:
     IRFunc func;
@@ -507,79 +386,6 @@ public:
     IRModule& run();
     void printIR(const IRModule& irm);
 
-};
-
-/// Output context interface
-class OutputContext{
-public:
-    virtual ~OutputContext() {}
-    virtual void write(std::string_view str) = 0;
-    virtual void flush() = 0;
-};
-
-/// Standard output context
-class StdioContext : public OutputContext{
-public:
-    void write(std::string_view str) override {
-        std::cout << str;
-    }
-    void flush() override {
-        std::cout.flush();
-    }
-};
-
-/// @brief File output context
-class FileContext : public OutputContext{
-    FILE* fp;
-public:
-    FileContext(const char* filename) : fp(nullptr) {
-        fp = fopen(filename, "w");
-        if(!fp) {
-            fprintf(stderr, "Cannot open file: %s\n", filename);
-            exit(1);
-        }
-    }
-    void write(std::string_view str) override {
-        if(fp) {
-            fputs(str.data(), fp);
-        }
-    }
-    void flush() override {
-        if(fp) {
-            fflush(fp);
-        }
-    }
-};
-
-class NullContext : public OutputContext{
-public:
-    void write(std::string_view) override {}
-    void flush() override {}
-};
-
-class Output {
-    OutputContext* ctx;
-public:
-    Output(OutputContext* ctx_) : ctx(ctx_) {}
-    Output() : ctx(new NullContext()) {}
-    template <class... Ts>
-    void print(std::format_string<Ts...> fmt, Ts&&... args) {
-        std::string buf;
-        buf.reserve(128);
-        std::format_to(std::back_inserter(buf), fmt, std::forward<Ts>(args)...);
-        ctx->write(buf);
-    }
-    void flush() {
-        ctx->flush();
-    }
-    void setFileContext(const char* filename) {
-        delete ctx;
-        ctx = new FileContext(filename);
-    }
-    void setStdioContext() {
-        delete ctx;
-        ctx = new StdioContext();
-    }
 };
 
 class X86Generator{

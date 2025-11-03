@@ -59,8 +59,6 @@ struct Token{
     std::string str;
 };
 
-typedef uint32_t TokenIdx;
-
 class Tokenizer {
 public:
     class TokenStream {
