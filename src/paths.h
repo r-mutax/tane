@@ -10,5 +10,5 @@ public:
     void addDirPath(const std::string& path){
         tnlibDirs.push_back(path);
     }
-    std::string resolve(const std::string& moduleName);
-};
+    std::string resolveTnlib(const std::string& moduleName);
+    std::string resolveTn(const std::string& moduleName);};

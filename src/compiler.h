@@ -2,13 +2,16 @@
 
 #include <string>
 #include "paths.h"
+#include "tnlib_loader.h"
 
 class CompileOptions {
 public:
     bool emitIR = false;
     bool emitAssembly = true;
+    bool bindOnly = false;
     ModulePath& modulePath;
     std::string output_file;
+    moduleSet& loadedModules;
 };
 
 class Compiler {

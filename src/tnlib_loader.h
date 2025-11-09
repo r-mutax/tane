@@ -5,17 +5,19 @@
 #include "paths.h"
 #include "symbol.h"
 
+using moduleSet = std::unordered_set<std::string>;
+
 class TnlibLoader
 {
     // loaded module paths
-    std::unordered_set<std::string> loadedModules;
+    moduleSet& loadedModules;
 
     // module path resolver
     ModulePath modulePath;
 
     std::string readfile(const std::string& filepath);
 public:
-    TnlibLoader(ModulePath& mPath) : modulePath(mPath) {};
-    std::vector<Symbol> loadTnlib(const std::string& filepath);
+    TnlibLoader(ModulePath mPath, moduleSet& loadedModules) : loadedModules(loadedModules), modulePath(mPath) {}
+    std::vector<Symbol> loadTnlib(const std::string& moduleName);
 };
 

@@ -18,7 +18,7 @@ void Compiler::compileSource(const std::string& srccode, std::string modulename)
     ASTIdx root = parser.parseFile();
 
     // Generate IR
-    IRGenerator irgen(root, parser, options.modulePath);
+    IRGenerator irgen(root, parser, options.modulePath, options.loadedModules);
     IRModule& mod = irgen.run();
 
     if(modulename.empty()) {
@@ -26,6 +26,10 @@ void Compiler::compileSource(const std::string& srccode, std::string modulename)
     }
     mod.outputSymbols(modulename);
 
+    if(options.bindOnly){
+        // if bind only, stop here
+        return;
+    }
     // Emit IR
     X86Generator x86gen(mod);
     x86gen.setOutputFile(options.output_file);

@@ -1,22 +1,40 @@
 #include "tnlib_loader.h"
 #include "tokenizer.h"
+#include "compiler.h"
 
-std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& filepath)
+std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& moduleName)
 {
     // Check if the module has already been loaded
-    if (loadedModules.count(filepath))
+    if (loadedModules.count(moduleName))
     {
         return {};  // Return an empty vector if already loaded
     }
 
-    std::string fullPath = modulePath.resolve(filepath);
+    std::string fullPath = modulePath.resolveTnlib(moduleName);
     if (fullPath == "")
     {
-        fprintf(stderr, "Failed to resolve tnlib file: %s\n", filepath.c_str());
-        exit(1);
-    }
+        fullPath = modulePath.resolveTn(moduleName);
+        if (fullPath == "")
+        {
+            fprintf(stderr, "Failed to resolve tnlib file: %s\n", moduleName.c_str());
+            exit(1);
+        }
 
+        // try compile .tnlib from .tn
+        CompileOptions comp {
+            .emitIR = false,
+            .emitAssembly = false,
+            .bindOnly = true,
+            .modulePath = modulePath,
+            .output_file = "",
+            .loadedModules = loadedModules
+        };
+        Compiler compiler(comp);
+        compiler.compileFile(fullPath);
+        fullPath = modulePath.resolveTnlib(moduleName);
+    }
     std::string content = readfile(fullPath);
+
     Tokenizer tokenizer(true);
     Tokenizer::TokenStream& ts = tokenizer.scan(const_cast<char*>(content.c_str()) );
 
@@ -61,7 +79,7 @@ std::vector<Symbol> TnlibLoader::loadTnlib(const std::string& filepath)
         symbols.push_back(fnSym);
     }
 
-    loadedModules.insert(filepath);
+    loadedModules.insert(moduleName);
     return symbols;
 }
 

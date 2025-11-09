@@ -1,5 +1,6 @@
 #include "tane.hpp"
 #include "compiler.h"
+#include "tnlib_loader.h"
 
 #include <fstream>
 #include <sstream>
@@ -79,9 +80,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    moduleSet loadedModules;
+
     CompileOptions options{
         .modulePath = modulePath,
-        .output_file = outputFile
+        .output_file = std::string(outputFile),
+        .loadedModules = loadedModules
     };
 
     Compiler compiler(options);

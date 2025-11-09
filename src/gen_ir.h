@@ -179,7 +179,7 @@ public:
     Parser& ps;
     ASTIdx root;
     TnlibLoader tnlibLoader;
-        IRGenerator(ASTIdx idx, Parser& parser, ModulePath& mPath) : ps(parser), root(idx), tnlibLoader(mPath) {
+    IRGenerator(ASTIdx idx, Parser& parser, ModulePath& mPath, moduleSet& loadedModules) : ps(parser), root(idx), tnlibLoader(mPath, loadedModules) {
         module.scopes.push_back(Scope(-1));
         module.curScope = module.scopes.size() - 1;
         module.globalScope = module.scopes.size() - 1;
