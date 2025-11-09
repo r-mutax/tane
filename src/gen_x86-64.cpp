@@ -1,4 +1,42 @@
-#include "tane.hpp"
+#include "gen_x86-64.h"
+
+inline const char* regName(PhysReg r) {
+    switch(r) {
+        case PhysReg::R10: return "r10";
+        case PhysReg::R11: return "r11";
+        case PhysReg::R12: return "r12";
+        case PhysReg::R13: return "r13";
+        case PhysReg::R14: return "r14";
+        case PhysReg::R15: return "r15";
+        case PhysReg::RAX: return "rax";
+        case PhysReg::RDI: return "rdi";
+        case PhysReg::RSI: return "rsi";
+        case PhysReg::RDX: return "rdx";
+        case PhysReg::RCX: return "rcx";
+        case PhysReg::R8:  return "r8";
+        case PhysReg::R9:  return "r9";
+        default: return "none";
+    }
+}
+
+inline const char* regName8(PhysReg r) {
+    switch(r) {
+        case PhysReg::R10: return "r10b";
+        case PhysReg::R11: return "r11b";
+        case PhysReg::R12: return "r12b";
+        case PhysReg::R13: return "r13b";
+        case PhysReg::R14: return "r14b";
+        case PhysReg::R15: return "r15b";
+        case PhysReg::RAX: return "al";
+        case PhysReg::RDI: return "dil";
+        case PhysReg::RSI: return "sil";
+        case PhysReg::RDX: return "dl";
+        case PhysReg::RCX: return "cl";
+        case PhysReg::R8:  return "r8b";
+        case PhysReg::R9:  return "r9b";
+        default: return "none";
+    }
+}
 
 void X86Generator::emit(){
     out.print(".intel_syntax noprefix\n");

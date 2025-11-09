@@ -1,4 +1,4 @@
-#include "tane.hpp"
+#include "tokenizer.h"
 
 std::map<std::string, TokenKind> Tokenizer::keyword_map = {
     {"return", TokenKind::Return},
@@ -206,8 +206,18 @@ bool Tokenizer::is_ident2(char c){
     return is_ident1(c) || isdigit(c);
 }
 
+// TokenStream member functions
+void Tokenizer::TokenStream::addToken(TokenKind kind, char* pos){
+    Token t;
+    t.kind = kind;
+    t.pos = pos;
+    t.len = 1;
+    t.val = 0;
+    tokens.push_back(t);
+}
+
 bool Tokenizer::TokenStream::consume(TokenKind kind){
-    if(idx >= tokens.size()){
+    if(idx >= (int32_t)tokens.size()){
         return false;
     }
     if(tokens[idx].kind != kind){
@@ -219,7 +229,7 @@ bool Tokenizer::TokenStream::consume(TokenKind kind){
 }
 
 void Tokenizer::TokenStream::expect(TokenKind kind){
-    if(idx >= tokens.size()){
+    if(idx >= (int32_t)tokens.size()){
         fprintf(stderr, "Unexpected end of input\n");
         exit(1);
     }
@@ -234,7 +244,7 @@ void Tokenizer::TokenStream::expect(TokenKind kind){
 }
 
 int32_t Tokenizer::TokenStream::expectNum(){
-    if(idx >= tokens.size()){
+    if(idx >= (int32_t)tokens.size()){
         fprintf(stderr, "Unexpected end of input\n");
         exit(1);
     }
@@ -248,7 +258,7 @@ int32_t Tokenizer::TokenStream::expectNum(){
 }
 
 TokenIdx Tokenizer::TokenStream::expectIdent(){
-    if(idx >= tokens.size()){
+    if(idx >= (int32_t)tokens.size()){
         fprintf(stderr, "Unexpected end of input\n");
         exit(1);
     }
@@ -262,7 +272,7 @@ TokenIdx Tokenizer::TokenStream::expectIdent(){
 }
 
 TokenIdx Tokenizer::TokenStream::expectStringLiteral(){
-    if(idx >= tokens.size()){
+    if(idx >= (int32_t)tokens.size()){
         fprintf(stderr, "Unexpected end of input\n");
         exit(1);
     }
@@ -276,7 +286,7 @@ TokenIdx Tokenizer::TokenStream::expectStringLiteral(){
 }
 
 std::optional<TokenIdx> Tokenizer::TokenStream::consumeIdent(){
-    if(idx >= tokens.size()){
+    if(idx >= (int32_t)tokens.size()){
         return std::nullopt;
     }
     if(tokens[idx].kind != TokenKind::Ident){
@@ -285,6 +295,11 @@ std::optional<TokenIdx> Tokenizer::TokenStream::consumeIdent(){
     return idx++;
 }
 
+bool Tokenizer::TokenStream::peekKind(TokenKind kind, TokenIdx offset){
+    size_t i = static_cast<size_t>(idx) + static_cast<size_t>(offset);
+    if(i >= tokens.size()) return false;
+    return tokens[i].kind == kind;
+}
 
 // For debugging
 

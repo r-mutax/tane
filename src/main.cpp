@@ -1,4 +1,7 @@
 #include "tane.hpp"
+#include "compiler.h"
+#include "tnlib_loader.h"
+
 #include <fstream>
 #include <sstream>
 
@@ -11,29 +14,6 @@ void printUsage(const char* progName) {
     fprintf(stderr, "Examples:\n");
     fprintf(stderr, "  %s source.tn              # Compile file\n", progName);
     fprintf(stderr, "  %s -c \"fn main() {...}\"   # Compile string\n", progName);
-}
-
-std::string readFile(const char* filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        fprintf(stderr, "Error: Cannot open file '%s'\n", filename);
-        exit(1);
-    }
-    
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
-}
-
-std::string getModuleName(const char* filepath) {
-    std::string pathStr(filepath);
-    size_t lastSlash = pathStr.find_last_of("/\\");
-    size_t lastDot = pathStr.find_last_of('.');
-    if (lastDot == std::string::npos || (lastSlash != std::string::npos && lastDot < lastSlash)) {
-        lastDot = pathStr.length();
-    }
-    size_t start = (lastSlash == std::string::npos) ? 0 : lastSlash + 1;
-    return pathStr.substr(start, lastDot - start);
 }
 
 int main(int argc, char** argv) {
@@ -100,39 +80,21 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Get source code
-    std::string source;
+    moduleSet loadedModules;
+
+    CompileOptions options{
+        .modulePath = modulePath,
+        .output_file = std::string(outputFile),
+        .loadedModules = loadedModules
+    };
+
+    Compiler compiler(options);
+
     if(codeString != nullptr){
-        source = codeString;
+        compiler.compileSource(codeString);
     } else {
-        source = readFile(inputFile);
+        compiler.compileFile(inputFile);
     }
-    
-    // Tokenize
-    Tokenizer tokenizer;
-    Tokenizer::TokenStream& ts = tokenizer.scan(const_cast<char*>(source.c_str()));
-
-    // Parse
-    Parser parser(ts);
-    ASTIdx root = parser.parseFile();
-
-    // Generate IR
-    IRGenerator irgen(root, parser, modulePath);
-    IRModule& mod = irgen.run();
-
-    // get module name
-    std::string moduleName;
-    if(inputFile != nullptr){
-        moduleName = getModuleName(inputFile);
-    } else {
-        moduleName = "module";
-    }
-    mod.outputSymbols(moduleName);
-
-    // Generate assembly
-    X86Generator x86gen(mod);
-    x86gen.setOutputFile(outputFile);
-    x86gen.emit();
 
     return 0;
 }
