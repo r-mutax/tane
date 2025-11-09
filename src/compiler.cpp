@@ -24,7 +24,7 @@ void Compiler::compileSource(const std::string& srccode, std::string modulename)
     if(modulename.empty()) {
         modulename = "module";
     }
-    mod.outputSymbols(modulename);
+    mod.outputSymbols(targetDir, modulename);
 
     if(options.bindOnly){
         // if bind only, stop here
@@ -38,6 +38,13 @@ void Compiler::compileSource(const std::string& srccode, std::string modulename)
 
 void Compiler::compileFile(const std::string& filepath){
     std::string srccode = readFile(filepath);
+
+    // get file directory
+    targetDir = ".";
+    size_t lastSlash = filepath.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        targetDir = filepath.substr(0, lastSlash);
+    }
 
     compileSource(srccode, getModuleName(filepath.c_str()));
 }

@@ -16,6 +16,7 @@ public:
 
 class Compiler {
     CompileOptions& options;
+    std::string targetDir = "";
     std::string getModuleName(const char* filepath);
     std::string readFile(const std::string& filename);
 public:

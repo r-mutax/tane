@@ -157,7 +157,7 @@ public:
 
     Symbol& getSymbol(SymbolIdx idx);
 
-    void outputSymbols(std::string module);
+    void outputSymbols(std::string dir, std::string module);
 
     void printSymbols();
 };

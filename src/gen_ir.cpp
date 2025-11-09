@@ -742,9 +742,13 @@ Symbol& IRModule::getSymbol(SymbolIdx idx){
     return symbolPool[idx];
 }
 
-void IRModule::outputSymbols(std::string module){
+void IRModule::outputSymbols(std::string dir, std::string module){
+    if(dir == ""){
+        dir = ".";
+    }
+
     FILE *fp;
-    std::string filename = module + ".tnlib";
+    std::string filename = dir + "/" + module + ".tnlib";
     fp = fopen(filename.c_str(), "w");
     if(!fp){
         fprintf(stderr, "Cannot open file: %s\n", filename.c_str());
