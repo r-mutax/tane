@@ -19,3 +19,9 @@ print:
     syscall
     pop rbp
     ret
+
+.global exit
+exit:
+    mov rax, 60  # sys_exit
+    # rdi already contains exit status (first argument)
+    syscall

@@ -71,24 +71,17 @@ run: $(TARGET)
 	$(TARGET)
 
 # Test target
-# Executes test.sh which is expected to run: build/tane "code"
-# Make sure test.sh is executable
-TEST_SCRIPT := ./test.sh
+# Build test/src/test.tn and link with standard library, then run it
+TEST_SRC      := test/src/test.tn
+TEST_BIN_DIR  := test/bin
+TEST_S        := $(TEST_BIN_DIR)/test.s
+TEST_OBJ      := $(TEST_BIN_DIR)/test.o
+TEST_EXE      := $(TEST_BIN_DIR)/test.exe
 
-test: $(TARGET) $(TEST_SCRIPT)
-	@chmod +x $(TEST_SCRIPT)
-	$(TEST_SCRIPT)
-
-# ===== Build test/src/main.tn and link with standard library =====
-TEST_SRC      := test/src/main.tn
-TEST_BIN_DIR  := test/build/bin
-TEST_S        := $(TEST_BIN_DIR)/main.s
-TEST_OBJ      := $(TEST_BIN_DIR)/main.o
-TEST_EXE      := test/build/test.exe
-
-.PHONY: test2
-test2: $(TARGET) std $(TEST_EXE)
-	@echo "Built $(TEST_EXE)"
+.PHONY: test
+test: $(TARGET) std $(TEST_EXE)
+	@echo "Running tests..."
+	@$(TEST_EXE)
 
 $(TEST_BIN_DIR):
 	@mkdir -p $(TEST_BIN_DIR)
@@ -103,11 +96,11 @@ $(TEST_OBJ): $(TEST_S)
 
 # Link with standard library static archive
 $(TEST_EXE): $(TEST_OBJ) $(STD_LIB)
-	$(CXX) -no-pie -o $@ $^ 
+	$(CXX) -no-pie -o $@ $^
 
 # Clean build outputs
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET) $(STD_OBJ_DIR) test/build
+	rm -rf $(OBJ_DIR) $(TARGET) $(STD_OBJ_DIR) $(TEST_BIN_DIR)
 
 # Keep intermediate assembly file
 .PRECIOUS: $(TEST_S)
