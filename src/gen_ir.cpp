@@ -13,7 +13,7 @@ IRModule& IRGenerator::run(){
         if(astNode.kind == ASTKind::Import){
             // Ignore imports during code generation
         } else if(astNode.kind == ASTKind::Function){
-            module.funcPool.push_back(genFunc(astIdx));
+            module.funcPool.push_back(*genFunc(astIdx));
         } else {
             fprintf(stderr, "Unexpected AST node in TranslationUnit during IR generation\n");
             exit(1);
@@ -190,20 +190,22 @@ void IRGenerator::bindExpr(ASTIdx idx){
         bindExpr(node.rhs);
 }
 
-IRFunc IRGenerator::genFunc(ASTIdx idx){
+IRFunc* IRGenerator::genFunc(ASTIdx idx){
     ASTNode node = ps.getAST(idx);
 
-    func.clean();
-    func.fname = node.name;
+    curFunc = new IRFunc();
+
+    curFunc->clean();
+    curFunc->fname = node.name;
 
     FuncSem fs = module.funcSem[idx];
-    func.localStackSize = fs.localBytes;
-    func.params.clear();
-    func.params = fs.params;        
+    curFunc->localStackSize = fs.localBytes;
+    curFunc->params.clear();
+    curFunc->params = fs.params;
 
     genStmt(node.body[0]);  // function body
 
-    return func;
+    return curFunc;
 }
 
 void IRGenerator::genStmt(ASTIdx idx){
@@ -214,7 +216,7 @@ void IRGenerator::genStmt(ASTIdx idx){
             IRInstr instr;
             instr.cmd = IRCmd::RET;
             instr.s1 = genExpr(node.lhs);
-            func.instrPool.push_back(instr);
+            curFunc->instrPool.push_back(instr);
             break;
         }
         case ASTKind::CompoundStmt: {
@@ -230,8 +232,8 @@ void IRGenerator::genStmt(ASTIdx idx){
             IRInstr jz;
             jz.cmd = IRCmd::JZ;
             jz.s1 = condVid;
-            jz.imm = func.newLabel();
-            func.instrPool.push_back(jz);
+            jz.imm = curFunc->newLabel();
+            curFunc->instrPool.push_back(jz);
 
             // then branch
             genStmt(node.thenBr);
@@ -240,14 +242,14 @@ void IRGenerator::genStmt(ASTIdx idx){
             if(node.elseBr != -1){
                 IRInstr jmpEnd;
                 jmpEnd.cmd = IRCmd::JMP;
-                jmpEnd.imm = func.newLabel();
-                func.instrPool.push_back(jmpEnd);
+                jmpEnd.imm = curFunc->newLabel();
+                curFunc->instrPool.push_back(jmpEnd);
 
                 // else label
                 IRInstr elseLabel;
                 elseLabel.cmd = IRCmd::LLABEL;
                 elseLabel.imm = jz.imm;
-                func.instrPool.push_back(elseLabel);
+                curFunc->instrPool.push_back(elseLabel);
 
                 // else branch
                 genStmt(node.elseBr);
@@ -256,25 +258,25 @@ void IRGenerator::genStmt(ASTIdx idx){
                 IRInstr endLabel;
                 endLabel.cmd = IRCmd::LLABEL;
                 endLabel.imm = jmpEnd.imm;
-                func.instrPool.push_back(endLabel);
+                curFunc->instrPool.push_back(endLabel);
             } else {
                 // else label
                 IRInstr elseLabel;
                 elseLabel.cmd = IRCmd::LLABEL;
                 elseLabel.imm = jz.imm;
-                func.instrPool.push_back(elseLabel);
+                curFunc->instrPool.push_back(elseLabel);
             }
             break;            
         }
         case ASTKind::While: {
-            int32_t while_slabel = func.newLabel();
-            int32_t while_elabel = func.newLabel();
+            int32_t while_slabel = curFunc->newLabel();
+            int32_t while_elabel = curFunc->newLabel();
 
             // start label
             IRInstr startLabel;
             startLabel.cmd = IRCmd::LLABEL;
             startLabel.imm = while_slabel;
-            func.instrPool.push_back(startLabel);
+            curFunc->instrPool.push_back(startLabel);
 
             // condition
             VRegID condVid = genExpr(node.cond);
@@ -284,7 +286,7 @@ void IRGenerator::genStmt(ASTIdx idx){
             jz.cmd = IRCmd::JZ;
             jz.s1 = condVid;
             jz.imm = while_elabel;
-            func.instrPool.push_back(jz);
+            curFunc->instrPool.push_back(jz);
 
             // currently body must have only one compound statement
             genStmt(node.body[0]);
@@ -293,13 +295,13 @@ void IRGenerator::genStmt(ASTIdx idx){
             IRInstr jmpStart;
             jmpStart.cmd = IRCmd::JMP;
             jmpStart.imm = while_slabel;
-            func.instrPool.push_back(jmpStart);
+            curFunc->instrPool.push_back(jmpStart);
 
             // end label
             IRInstr endLabel;
             endLabel.cmd = IRCmd::LLABEL;
             endLabel.imm = while_elabel;
-            func.instrPool.push_back(endLabel);
+            curFunc->instrPool.push_back(endLabel);
             break;            
         }
         case ASTKind::VarDecl: {
@@ -315,7 +317,7 @@ void IRGenerator::genStmt(ASTIdx idx){
             instr.cmd = IRCmd::SAVE;
             instr.s1 = lhsAddrVid;
             instr.s2 = rhsVid;
-            func.instrPool.push_back(instr);
+            curFunc->instrPool.push_back(instr);
             break;        
         }
         default:
@@ -330,29 +332,29 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
     switch(node.kind){
         case ASTKind::Num:
             {
-                return func.newVRegNum(node.val);
+                return curFunc->newVRegNum(node.val);
             }
         case ASTKind::StringLiteral:{
-            VRegID vid = func.newVReg();
+            VRegID vid = curFunc->newVReg();
             IRInstr instr;
             instr.cmd = IRCmd::LEA_STRING;
             instr.imm = node.val; // string literal index
             instr.t = vid;
-            func.instrPool.push_back(instr);
+            curFunc->instrPool.push_back(instr);
             return vid;
         }
         case ASTKind::Variable:
         {
             SymbolIdx symIdx = module.astSymMap[idx];
             Symbol& sym = module.getSymbol(symIdx);
-            VRegID vid = func.newVRegVar(sym);
+            VRegID vid = curFunc->newVRegVar(sym);
             return vid;
         }
         case ASTKind::FunctionCall:
         {
             SymbolIdx symIdx = module.astSymMap[idx];
 
-            VRegID retVid = func.newVReg();
+            VRegID retVid = curFunc->newVReg();
             IRInstr instr;
             instr.cmd = IRCmd::CALL;
             instr.imm = symIdx; // function symbol index
@@ -364,15 +366,15 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
                 instr.args.push_back(argVid);
             }
 
-            func.instrPool.push_back(instr);
+            curFunc->instrPool.push_back(instr);
 
             return retVid;
         }
         case ASTKind::Switch:
         {
-            VRegID retVal = func.newVReg();
+            VRegID retVal = curFunc->newVReg();
             VRegID condVid = genExpr(node.cond);
-            int32_t endLabel = func.newLabel();
+            int32_t endLabel = curFunc->newLabel();
 
             // condition check
             for(auto caseIdx : node.body){
@@ -382,38 +384,38 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
 
                 // compare condition with case value
                 VRegID caseValVid = genExpr(caseNode.lhs);
-                VRegID cmpVid = func.newVReg();
-                func.newIRInstr(IRCmd::EQUAL, condVid, caseValVid, cmpVid);
+                VRegID cmpVid = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::EQUAL, condVid, caseValVid, cmpVid);
 
                 // jump to next case if not equal
                 IRInstr jz;
                 jz.cmd = IRCmd::JZ;
                 jz.s1 = cmpVid;
-                jz.imm = func.newLabel();
-                func.instrPool.push_back(jz);
+                jz.imm = curFunc->newLabel();
+                curFunc->instrPool.push_back(jz);
 
                 // generate case body
                 VRegID caseRetVid = genExpr(caseNode.rhs);
                 // move caseRetVid to retVal
-                func.newIRInstr(IRCmd::MOV, caseRetVid, -1, retVal);
+                curFunc->newIRInstr(IRCmd::MOV, caseRetVid, -1, retVal);
 
                 // jump to end
                 IRInstr jmpEnd;
                 jmpEnd.cmd = IRCmd::JMP;
                 jmpEnd.imm = endLabel;
-                func.instrPool.push_back(jmpEnd);
+                curFunc->instrPool.push_back(jmpEnd);
 
                 // next case label
                 IRInstr nextCaseLabel;
                 nextCaseLabel.cmd = IRCmd::LLABEL;
                 nextCaseLabel.imm = jz.imm;
-                func.instrPool.push_back(nextCaseLabel);
+                curFunc->instrPool.push_back(nextCaseLabel);
             }
 
             IRInstr jmpEnd;
             jmpEnd.cmd = IRCmd::LLABEL;
             jmpEnd.imm = endLabel;
-            func.instrPool.push_back(jmpEnd);
+            curFunc->instrPool.push_back(jmpEnd);
             return retVal;
         }
         default:
@@ -426,98 +428,98 @@ VRegID IRGenerator::genExpr(ASTIdx idx){
     switch(node.kind){
         case ASTKind::Add:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::ADD, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::ADD, lhs, rhs, t);
                 return t;
             }
         case ASTKind::Sub:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::SUB, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::SUB, lhs, rhs, t);
                 return t;
             }
         case ASTKind::Mul:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::MUL, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::MUL, lhs, rhs, t);
                 return t;
             }
         case ASTKind::Div:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::DIV, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::DIV, lhs, rhs, t);
                 return t;
             }
         case ASTKind::Mod:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::MOD, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::MOD, lhs, rhs, t);
                 return t;
             }
         case ASTKind::LogicalOr:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::LOGICAL_OR, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::LOGICAL_OR, lhs, rhs, t);
                 return t;
             }
         case ASTKind::LogicalAnd:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::LOGICAL_AND, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::LOGICAL_AND, lhs, rhs, t);
                 return t;
             }
         case ASTKind::BitOr:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::BIT_OR, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::BIT_OR, lhs, rhs, t);
                 return t;
             }
         case ASTKind::BitXor:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::BIT_XOR, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::BIT_XOR, lhs, rhs, t);
                 return t;
             }
         case ASTKind::BitAnd:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::BIT_AND, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::BIT_AND, lhs, rhs, t);
                 return t;
             }
         case ASTKind::Equal:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::EQUAL, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::EQUAL, lhs, rhs, t);
                 return t;
             }
         case ASTKind::NotEqual:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::NEQUAL, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::NEQUAL, lhs, rhs, t);
                 return t;
             }
         case ASTKind::LessThan:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::LT, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::LT, lhs, rhs, t);
                 return t;
             }
         case ASTKind::LessEqual:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::LE, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::LE, lhs, rhs, t);
                 return t;
             }
         case ASTKind::LShift:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::LSHIFT, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::LSHIFT, lhs, rhs, t);
                 return t;
             }
         case ASTKind::RShift:
             {
-                VRegID t = func.newVReg();
-                func.newIRInstr(IRCmd::RSHIFT, lhs, rhs, t);
+                VRegID t = curFunc->newVReg();
+                curFunc->newIRInstr(IRCmd::RSHIFT, lhs, rhs, t);
                 return t;
             }
         default:
@@ -536,12 +538,12 @@ VRegID IRGenerator::genlvalue(ASTIdx idx){
         {
             SymbolIdx symIdx = module.astSymMap[idx];
             Symbol& sym = module.getSymbol(symIdx);
-            VRegID addrVid = func.newVReg();
+            VRegID addrVid = curFunc->newVReg();
             IRInstr addrInstr;
             addrInstr.cmd = IRCmd::FRAME_ADDR;
             addrInstr.t = addrVid;
             addrInstr.imm = sym.stackOffset;
-            func.instrPool.push_back(addrInstr);
+            curFunc->instrPool.push_back(addrInstr);
             return addrVid;
         }
         default:

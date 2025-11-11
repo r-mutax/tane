@@ -164,13 +164,13 @@ public:
 
 class IRGenerator{
 private:
-    IRFunc func;
+    IRFunc* curFunc;
     void bindTU(ASTIdx idx);
     void bindImport(ASTIdx idx);
     void bindFunc(ASTIdx idx);
     void bindStmt(ASTIdx idx);
     void bindExpr(ASTIdx idx);
-    IRFunc genFunc(ASTIdx idx);
+    IRFunc* genFunc(ASTIdx idx);
     void genStmt(ASTIdx idx);
     VRegID genExpr(ASTIdx idx);
     VRegID genlvalue(ASTIdx idx);
