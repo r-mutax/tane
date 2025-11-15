@@ -120,9 +120,10 @@ public:
     }
 };
 
+// Function semantics information
 struct FuncSem{
-    uint32_t localBytes{0};
-    std::vector<SymbolIdx> params;
+    uint32_t localBytes{0};             // local variable stack size in bytes
+    std::vector<SymbolIdx> params;      // function parameters
 };
 
 struct StringLiteralData{

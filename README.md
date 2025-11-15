@@ -10,8 +10,11 @@ Tane is a small programming language that aims for self-hosting. Currently, the 
 
 - **Expressions**: Arithmetic operators (`+` `-` `*` `/` `%`), bitwise operators (`&` `|` `^` `<<` `>>`), comparison operators (`==` `!=` `<` `<=`), logical operators (`&&` `||`), switch expressions
 - **Statements**: Variable declaration (`let`/`mut`), assignment, `return`, compound statements, `if`/`else`, `while`
-- **Functions**: Function definitions and no-argument function calls
+- **Functions**: Function definitions with parameters (up to 6 arguments), function calls with arguments, `return` statements
 - **Variables**: Local variables are currently 8 bytes each and allocated on the stack (first at `[rbp - 8]`, second at `[rbp - 16]`, ...)
+- **Strings**: String literals (`"hello world"`) supported
+- **Modules**: Import system (`import <module>;`) for external libraries
+- **Standard Library**: Basic I/O functions (`print()`, `exit()`)
 
 ## Getting Started
 
@@ -67,11 +70,76 @@ make test
 
 The test suite compiles various Tane programs, assembles them with `gcc`, and verifies the exit codes.
 
+### Example Programs
+
+#### Hello World (with standard library)
+
+```tane
+import io;
+
+fn main() {
+    print("Hello, World!\n");
+    exit(0);
+}
+```
+
+#### Function with Arguments
+
+```tane
+fn add(a, b) {
+    return a + b;
+}
+
+fn main() {
+    let mut result;
+    result = add(3, 4);
+    return result;  // Returns 7
+}
+```
+
+#### Control Flow
+
+```tane
+fn factorial(n) {
+    let mut result;
+    result = 1;
+    let mut i;
+    i = 1;
+    while i <= n {
+        result = result * i;
+        i = i + 1;
+    }
+    return result;
+}
+
+fn main() {
+    return factorial(5);  // Returns 120
+}
+```
+
+#### Switch Expression
+
+```tane
+fn main() {
+    let mut x;
+    x = 2;
+    let mut result;
+    result = switch x {
+        1 => 10,
+        2 => 20,
+        3 => 30,
+    };
+    return result;  // Returns 20
+}
+```
+
 ### Roadmap
 
 - Add `break` / `continue` statements
-- Function arguments and parameters
-- Type system expansion
+- Type system (type annotations, type checking)
+- Arrays and structures
+- For loops
+- Comments support
 
 The EBNF below shows the minimal core specification (being updated incrementally).
 
@@ -79,7 +147,12 @@ The EBNF below shows the minimal core specification (being updated incrementally
 
 ```
 /* ---- Top Level ---- */
-file            := '{' stmts '}' ;
+file            := import-decl* func-decl* ;
+
+import-decl     := 'import' ident-name ';' ;
+
+func-decl       := 'fn' ident-name '(' params? ')' block ;
+params          := ident-name ( ',' ident-name )* ;  /* max 6 parameters */
 
 /* ---- Statements ---- */
 block           := '{' stmts '}' ;
@@ -122,9 +195,14 @@ unary           := ('+' | '-') unary
                  | primary ;
 
 primary         := int-lit
+                 | string-lit
+                 | func-call
                  | ident-name
                  | '(' expr ')'
                  | switch-expr ;
+
+func-call       := ident-name '(' args? ')' ;
+args            := expr ( ',' expr )* ;  /* max 6 arguments */
 
 switch-expr     := 'switch' expr '{' switch-arm* '}' ;
 switch-arm      := expr '=>' expr ','? ;
@@ -132,7 +210,17 @@ switch-arm      := expr '=>' expr ','? ;
 /* ---- Lexical ---- */
 ident-name      := /[A-Za-z_][A-Za-z0-9_]*/ ;
 int-lit         := '0' | /[1-9][0-9_]*/ ;
+string-lit      := '"' /[^"]*/ '"' ;
 WS              := ( ' ' | '\t' | '\r' | '\n' )+ ; 
 ```
 
-**Note**: Function definitions, type annotations, and many advanced features shown above are planned but not yet implemented. The grammar reflects the current working subset.
+## Constraints and Limitations
+
+- Functions support up to **6 parameters/arguments** (limited by x86-64 calling convention registers: RDI, RSI, RDX, RCX, R8, R9)
+- All variables are currently 8 bytes (no type system yet)
+- No type annotations or type checking (planned for future releases)
+- Comments are not yet supported
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests.
