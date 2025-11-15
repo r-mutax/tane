@@ -120,9 +120,10 @@ public:
     }
 };
 
+// Function semantics information
 struct FuncSem{
-    uint32_t localBytes{0};
-    std::vector<SymbolIdx> params;
+    uint32_t localBytes{0};             // local variable stack size in bytes
+    std::vector<SymbolIdx> params;      // function parameters
 };
 
 struct StringLiteralData{
@@ -164,13 +165,13 @@ public:
 
 class IRGenerator{
 private:
-    IRFunc func;
+    IRFunc* curFunc;
     void bindTU(ASTIdx idx);
     void bindImport(ASTIdx idx);
     void bindFunc(ASTIdx idx);
     void bindStmt(ASTIdx idx);
     void bindExpr(ASTIdx idx);
-    IRFunc genFunc(ASTIdx idx);
+    IRFunc* genFunc(ASTIdx idx);
     void genStmt(ASTIdx idx);
     VRegID genExpr(ASTIdx idx);
     VRegID genlvalue(ASTIdx idx);

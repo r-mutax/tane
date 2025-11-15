@@ -1,4 +1,5 @@
 tnlib 1
-module mod
+module io
 fn print(str);
+fn exit(status);
 end
